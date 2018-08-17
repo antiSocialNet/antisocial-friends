@@ -14,6 +14,9 @@ var _ = require('lodash');
 module.exports = function mountRequestFriend(router, config, db, authUserMiddleware) {
 
 	var testRegex = /^\/([a-zA-Z0-9\-\.]+)\/request-friend$/;
+
+	console.log('mounting GET /username/request-friend', testRegex);
+
 	router.get(testRegex, authUserMiddleware, function (req, res) {
 		var matches = req.path.match(testRegex);
 		var user = matches[1];

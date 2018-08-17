@@ -7,6 +7,8 @@ module.exports = function mountFriendExchangeToken(router, config, db, authUserM
 
 	var exchangeRegex = /^\/([a-zA-Z0-9\-\.]+)\/exchange-token$/;
 
+	console.log('mounting GET /username/exchange-token', exchangeRegex);
+
 	router.post(exchangeRegex, function (req, res, next) {
 		var matches = req.path.match(exchangeRegex);
 		var username = matches[1];
