@@ -3,7 +3,14 @@ var events = require('events');
 
 
 module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
-	var router = express.Router();
+	var router;
+
+	if (app.loopback) {
+		router = app.loopback.Router();
+	}
+	else {
+		router = express.Router();
+	}
 
 	router.eventHandler = new events.EventEmitter();
 
@@ -20,7 +27,12 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 	require('./routes/friend-exchange-token')(router, config, dbAdaptor, authUserMiddleware);
 
 
-	app.use(config.APIPrefix, router);
+	if (config.APIPrefix) {
+		app.use(config.APIPrefix, router);
+	}
+	else {
+		app.use(router);
+	}
 
 	return router.eventHandler;
 }
