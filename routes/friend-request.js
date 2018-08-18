@@ -253,8 +253,6 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 			}
 		], function (err, friend) {
 			if (err) {
-
-
 				var e = new WError(err, 'request-friend failed');
 				debug('friend-request error', e.cause().message);
 				res.send({
@@ -271,16 +269,17 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 					});
 				}
 			}
+			else {
+				router.eventHandler.emit('new-friend-request', {
+					'friend': friend
+				});
 
-			router.eventHandler.emit('new-friend-request', {
-				'friend': friend
-			});
-
-			// if success hand a request token back to caller
-			res.send({
-				'status': 'ok',
-				'requestToken': friend.localRequestToken,
-			});
+				// if success hand a request token back to caller
+				res.send({
+					'status': 'ok',
+					'requestToken': friend.localRequestToken,
+				});
+			}
 		})
 	});
 }
