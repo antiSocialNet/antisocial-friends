@@ -230,22 +230,30 @@ module.exports = function mountRequestFriend(router, config, db, authUserMiddlew
 			}
 		], function (err, friend) {
 			if (err) {
-				if (friend) {
-					db.deleteInstance('friends', friend.id);
-				}
 
 				var e = new WError(err, 'request-friend failed');
-				return res.send({
+
+				res.send({
 					'status': 'error',
 					'reason': e.message,
 					'details': e.cause().message
 				});
-			}
 
-			// if success hand a request token back to caller
-			res.send({
-				'status': 'ok'
-			});
+				if (friend) {
+					db.deleteInstance('friends', friend.id, function (err) {
+						if (err) {
+							console.log('/request-friend error deleting pending friend', err);
+						}
+					});
+				}
+			}
+			else {
+
+				// if success hand a request token back to caller
+				res.send({
+					'status': 'ok'
+				});
+			}
 		});
 	});
 }
