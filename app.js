@@ -133,6 +133,14 @@ antisocialApp.on('friend-request-accepted', function (e) {
   console.log('antisocial friend-request-accepted %j', e.friend.remoteEndPoint);
 });
 
+antisocialApp.on('friend-updated', function (e) {
+  console.log('antisocial friend-updated %j', e.friend.remoteEndPoint);
+});
+
+antisocialApp.on('friend-deleted', function (e) {
+  console.log('antisocial friend-deleted %j', e.friend.remoteEndPoint);
+});
+
 
 // user register route for tests
 var router = express.Router();

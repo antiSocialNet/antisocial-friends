@@ -120,6 +120,10 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 
 				if (newStatus === 'delete' || newStatus === 'block') {
 
+					router.eventHandler.emit('friend-deleted', {
+						'friend': JSON.parse(JSON.stringify(friend))
+					});
+
 					db.deleteInstance('friends', friend.id, function (err, friend) {
 						if (err) {
 							var e = new VError(err, '/friend-update updateFriend error');
@@ -141,6 +145,10 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 							var e = new VError(err, '/friend-update updateFriend error');
 							return cb(e);
 						}
+
+						router.eventHandler.emit('friend-updated', {
+							'friend': friend
+						});
 
 						cb(null);
 					})

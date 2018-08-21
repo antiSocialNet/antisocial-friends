@@ -82,10 +82,18 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 					})
 				}
 				else if (req.body.action === 'friend-update') {
-					// TODO: - notification that relationship changed (audiences?)
+
+					router.eventHandler.emit('friend-updated', {
+						'friend': friend
+					});
+
 					cb(null, friend);
 				}
 				else if (req.body.action === 'friend-request-declined' || req.body.action === 'request-friend-cancel' || req.body.action === 'friend-delete') {
+
+					router.eventHandler.emit('friend-deleted', {
+						'friend': JSON.parse(JSON.stringify(friend))
+					});
 
 					db.deleteInstance('friends', friend.id, function (err, friend) {
 						if (err) {

@@ -48,7 +48,7 @@ which is set to the user.id when created
 logged in user and exposes it on req.antisocialUser. This is application specific but typically would be a token cookie that can be used to look up a user. See simple example in app.js
 
 
-This function returns an event emitter. You can handle the following events as needed. For example, to notify user about a friend request.
+This function returns an event emitter. You can handle the following events as needed. For example, to notify user about a friend request, start watching feeds etc.
 
 ```
 antisocialApp.on('new-friend-request', function (e) {
@@ -57,6 +57,14 @@ antisocialApp.on('new-friend-request', function (e) {
 
 antisocialApp.on('friend-request-accepted', function (e) {
   console.log('antisocial new-friend-request %j', e.friend.remoteEndPoint);
+});
+
+antisocialApp.on('friend-updated', function (e) {
+  console.log('antisocial friend-updated %j', e.friend.remoteEndPoint);
+});
+
+antisocialApp.on('friend-deleted', function (e) {
+  console.log('antisocial friend-deleted %j', e.friend.remoteEndPoint);
 });
 
 ```
