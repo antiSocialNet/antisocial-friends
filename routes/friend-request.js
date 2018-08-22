@@ -158,7 +158,8 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 					'keys': pair,
 					'audiences': ['public'],
 					'hash': crc.crc32(req.body.remoteEndPoint).toString(16),
-					'userId': user.id
+					'userId': user.id,
+					'inviteToken': invite
 				}
 
 				db.newInstance('friends', newFriend, function (err, friendInstance) {

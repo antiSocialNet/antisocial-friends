@@ -56,7 +56,7 @@ antisocialApp.on('new-friend-request', function (e) {
 });
 
 antisocialApp.on('friend-request-accepted', function (e) {
-  console.log('antisocial new-friend-request %j', e.friend.remoteEndPoint);
+  console.log('antisocial friend-request-accepted %j', e.friend.remoteEndPoint);
 });
 
 antisocialApp.on('friend-updated', function (e) {
