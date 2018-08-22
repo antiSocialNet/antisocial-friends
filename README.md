@@ -134,10 +134,10 @@ At the end of this protocol both users will have a Friend record holding the acc
 ---
 
 Use case: Michael wants to friend Alan and already knows the address of Alan's server endpoint.
-`http://emtage.com/alan`
+`http://emtage.com/ae`
 
 Michael logs on to his account on his server.
-`http://rhodes.com/friends`
+`http://rhodes.com/mr`
 
 Michael enters Alan's address on the friend request form.
 
@@ -154,7 +154,7 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
 GET --------------------->
-http://rhodes.com/mr/request-friend?endpoint=http://emtage.com/alan
+http://rhodes.com/mr/request-friend?endpoint=http://emtage.com/ae
 ```
 
 2. Michael's server sends a POST request to Alan's server to initiate the friend request.
@@ -177,7 +177,7 @@ Michael's Browser         Michael's server           Alan's server            Al
                           <------------------------ POST
                                                     http://rhodes.com/mr/friend-exchange
                                                     BODY {
-                                                      'endpoint': 'http://emtage.com/alan',
+                                                      'endpoint': 'http://emtage.com/ae',
                                                       'requestToken': Michaels Request Token
                                                     }
 ```
