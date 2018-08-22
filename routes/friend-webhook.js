@@ -5,7 +5,7 @@ var async = require('async');
 
 module.exports = function mountFriendWebhook(router, config, db, authUserMiddleware) {
 
-	var webhookRegex = /^\/([a-zA-Z0-9\-\.]+)\/friend-webhook$/;
+	var webhookRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-webhook$/;
 
 	console.log('mounting GET /username/friend-webhook', webhookRegex);
 
@@ -66,7 +66,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 					var update = {
 						'status': 'accepted',
 						'audiences': friend.audiences
-					}
+					};
 
 					db.updateInstance('friends', friend.id, update, function (err, friend) {
 						if (err) {
@@ -79,7 +79,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 						});
 
 						cb(null, friend);
-					})
+					});
 				}
 				else if (req.body.action === 'friend-update') {
 
@@ -102,7 +102,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 						}
 
 						cb(null);
-					})
+					});
 				}
 				else {
 					return cb(new VError('unknown webhook action'));
@@ -120,6 +120,6 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 			res.send({
 				'status': 'ok'
 			});
-		})
+		});
 	});
-}
+};

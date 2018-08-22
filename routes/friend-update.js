@@ -1,5 +1,4 @@
 var fixIfBehindProxy = require('../lib/utilities').fixIfBehindProxy;
-var url = require('url');
 var debug = require('debug')('antisocial-friends');
 var VError = require('verror').VError;
 var WError = require('verror').WError;
@@ -8,7 +7,7 @@ var request = require('request');
 var _ = require('lodash');
 
 module.exports = function mountFriendUpdate(router, config, db, authUserMiddleware) {
-	var updateRegex = /^\/([a-zA-Z0-9\-\.]+)\/friend-update$/;
+	var updateRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-update$/;
 
 	console.log('mounting GET /username/friend-update', updateRegex);
 
@@ -27,8 +26,6 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 			debug('endpoint not a valid url');
 			return res.status(400).send('endpoint not a valid url');
 		}
-
-		var remoteEndpoint = url.parse(req.body.endpoint);
 
 		// must be a logged in user
 		var currentUser = req.antisocialUser;
@@ -78,8 +75,6 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 				if (newStatus === 'delete' || newStatus === 'block') {
 					payload.action = 'friend-delete';
 				}
-
-				var endpoint = url.parse(friend.remoteEndPoint);
 
 				var options = {
 					'url': fixIfBehindProxy(friend.remoteEndPoint + '/friend-webhook'),
@@ -138,7 +133,7 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 
 					var update = {
 						'audiences': newAudiences
-					}
+					};
 
 					db.updateInstance('friends', friend.id, update, function (err, friend) {
 						if (err) {
@@ -151,7 +146,7 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 						});
 
 						cb(null);
-					})
+					});
 				}
 			}
 		], function (err) {
@@ -167,7 +162,7 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 			res.send({
 				'status': 'ok'
 			});
-		})
+		});
 
 	});
 };

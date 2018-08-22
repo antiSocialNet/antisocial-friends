@@ -12,7 +12,7 @@ var _ = require('lodash');
 
 module.exports = function mountFriendRequest(router, config, db, authUserMiddleware) {
 
-	var testRegex = /^\/([a-zA-Z0-9\-\.]+)\/friend-request$/;
+	var testRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request$/;
 
 	console.log('mounting GET /username/friend-request', testRegex);
 
@@ -34,7 +34,6 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 		}
 
 		var remoteEndPoint = url.parse(req.body.remoteEndPoint);
-		var remoteUsername = remoteEndPoint.pathname.substring(1);
 
 		async.waterfall([
 			function getUser(cb) {
@@ -160,7 +159,7 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 					'hash': crc.crc32(req.body.remoteEndPoint).toString(16),
 					'userId': user.id,
 					'inviteToken': invite
-				}
+				};
 
 				db.newInstance('friends', newFriend, function (err, friendInstance) {
 					if (err) {
@@ -168,7 +167,7 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 						return cb(e);
 					}
 					cb(null, user, friendInstance, invitation);
-				})
+				});
 			},
 			function exchangeToken(user, friend, invitation, cb) {
 
@@ -182,7 +181,7 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 					'url': fixIfBehindProxy(friend.remoteEndPoint + '/exchange-token'),
 					'form': payload,
 					'json': true
-				}
+				};
 
 				debug('/friend-request exchangeToken POST ', options);
 
@@ -244,8 +243,8 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 						}
 
 						cb(null, friend);
-					})
-				})
+					});
+				});
 			}
 		], function (err, friend) {
 			if (err) {
@@ -283,6 +282,6 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 					'requestToken': friend.localRequestToken,
 				});
 			}
-		})
+		});
 	});
-}
+};

@@ -54,4 +54,4 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 	}
 
 	return router.eventHandler;
-}
+};

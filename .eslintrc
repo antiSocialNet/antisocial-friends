@@ -1,0 +1,19 @@
+{
+    "extends": "eslint:recommended",
+    "env": {
+        "mocha": true,
+        "node": true
+    },
+    "rules": {
+        // enable additional rules
+        "linebreak-style": ["error", "unix"],
+        "quotes": ["error", "single"],
+        "semi": ["error", "always"],
+
+        // override default options for rules from base configurations
+        "no-cond-assign": ["error", "always"],
+
+        // disable rules from base configurations
+        "no-console": "off",
+    }
+}

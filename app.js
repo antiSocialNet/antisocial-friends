@@ -1,5 +1,4 @@
 var express = require('express');
-var path = require('path');
 var cookieParser = require('cookie-parser');
 var uuid = require('uuid');
 
@@ -44,8 +43,8 @@ function dbHandler() {
 
   // get an item by matching some property
   this.getInstances = function (collectionName, pairs, cb) {
-    var found = []
-    for (item in self.collections[collectionName]) {
+    var found = [];
+    for (var item in self.collections[collectionName]) {
       if (self.collections[collectionName].hasOwnProperty(item)) {
         var instance = self.collections[collectionName][item];
 
@@ -144,7 +143,7 @@ antisocialApp.on('friend-deleted', function (e) {
 
 // user register route for tests
 var router = express.Router();
-router.all('/register', function (req, res, next) {
+router.all('/register', function (req, res) {
   var params = req.method === 'GET' ? req.query : req.body;
   app.db.newInstance('users', {
     'name': params.name,

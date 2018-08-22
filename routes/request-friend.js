@@ -13,7 +13,7 @@ var _ = require('lodash');
 
 module.exports = function mountRequestFriend(router, config, db, authUserMiddleware) {
 
-	var testRegex = /^\/([a-zA-Z0-9\-\.]+)\/request-friend$/;
+	var testRegex = /^\/([a-zA-Z0-9\-.]+)\/request-friend$/;
 
 	console.log('mounting GET /username/request-friend', testRegex);
 
@@ -102,7 +102,7 @@ module.exports = function mountRequestFriend(router, config, db, authUserMiddlew
 					'hash': crc.crc32(req.query.endpoint).toString(16),
 					'userId': currentUser.id,
 					'inviteToken': invite
-				}
+				};
 
 				db.newInstance('friends', newFriend, function (err, friendInstance) {
 					if (err) {
@@ -110,7 +110,7 @@ module.exports = function mountRequestFriend(router, config, db, authUserMiddlew
 						return cb(e);
 					}
 					cb(null, friendInstance);
-				})
+				});
 			},
 			function makeFriendRequest(friend, cb) {
 
@@ -163,7 +163,7 @@ module.exports = function mountRequestFriend(router, config, db, authUserMiddlew
 					'url': fixIfBehindProxy(friend.remoteEndPoint + '/exchange-token'),
 					'form': payload,
 					'json': true
-				}
+				};
 
 				debug('/request-friend exchangeToken POST ', options);
 
@@ -226,7 +226,7 @@ module.exports = function mountRequestFriend(router, config, db, authUserMiddlew
 						}
 
 						cb(null, friend);
-					})
+					});
 				});
 			}
 		], function (err, friend) {
@@ -257,4 +257,4 @@ module.exports = function mountRequestFriend(router, config, db, authUserMiddlew
 			}
 		});
 	});
-}
+};

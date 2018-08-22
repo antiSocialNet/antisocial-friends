@@ -5,11 +5,11 @@ var WError = require('verror').WError;
 
 module.exports = function mountFriendExchangeToken(router, config, db, authUserMiddleware) {
 
-	var exchangeRegex = /^\/([a-zA-Z0-9\-\.]+)\/exchange-token$/;
+	var exchangeRegex = /^\/([a-zA-Z0-9\-.]+)\/exchange-token$/;
 
 	console.log('mounting GET /username/exchange-token', exchangeRegex);
 
-	router.post(exchangeRegex, function (req, res, next) {
+	router.post(exchangeRegex, function (req, res) {
 		var matches = req.path.match(exchangeRegex);
 		var username = matches[1];
 
@@ -73,4 +73,4 @@ module.exports = function mountFriendExchangeToken(router, config, db, authUserM
 		});
 	});
 
-}
+};

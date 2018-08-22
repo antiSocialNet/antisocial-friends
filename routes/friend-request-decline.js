@@ -1,5 +1,4 @@
 var fixIfBehindProxy = require('../lib/utilities').fixIfBehindProxy;
-var url = require('url');
 var debug = require('debug')('antisocial-friends');
 var VError = require('verror').VError;
 var WError = require('verror').WError;
@@ -9,7 +8,7 @@ var _ = require('lodash');
 
 module.exports = function mountFriendRequestDecline(router, config, db, authUserMiddleware) {
 
-	var declineRegex = /^\/([a-zA-Z0-9\-\.]+)\/friend-request-decline$/;
+	var declineRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request-decline$/;
 
 	console.log('mounting GET /username/friend-request-decline', declineRegex);
 
@@ -28,8 +27,6 @@ module.exports = function mountFriendRequestDecline(router, config, db, authUser
 			debug('endpoint not a valid url');
 			return res.status(400).send('endpoint not a valid url');
 		}
-
-		var remoteEndpoint = url.parse(req.body.endpoint);
 
 		// must be a logged in user
 		var currentUser = req.antisocialUser;
@@ -73,8 +70,6 @@ module.exports = function mountFriendRequestDecline(router, config, db, authUser
 					'action': 'friend-request-declined'
 				};
 
-				var endpoint = url.parse(friend.remoteEndPoint);
-
 				var options = {
 					'url': fixIfBehindProxy(friend.remoteEndPoint + '/friend-webhook'),
 					'form': payload,
@@ -104,7 +99,7 @@ module.exports = function mountFriendRequestDecline(router, config, db, authUser
 					}
 
 					cb(null);
-				})
+				});
 			}
 		], function (err) {
 			if (err) {
@@ -121,4 +116,4 @@ module.exports = function mountFriendRequestDecline(router, config, db, authUser
 			});
 		});
 	});
-}
+};
