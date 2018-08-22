@@ -53,6 +53,9 @@ module.exports = function mountFriendRequestAccept(router, config, db, authUserM
 				}, {
 					'property': 'remoteEndPoint',
 					'value': req.body.endpoint
+				}, {
+					'property': 'status',
+					'value': 'pending'
 				}], function (err, friendInstances) {
 					if (err) {
 						return cb(new VError(err, 'error reading friends'));
@@ -120,6 +123,10 @@ module.exports = function mountFriendRequestAccept(router, config, db, authUserM
 					'details': e.cause().message
 				});
 			}
+
+			router.eventHandler.emit('new-friend', {
+				'friend': friend
+			});
 
 			res.send({
 				'status': 'ok'

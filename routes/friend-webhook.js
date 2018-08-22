@@ -74,7 +74,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 							return cb(e, friend);
 						}
 
-						router.eventHandler.emit('friend-request-accepted', {
+						router.eventHandler.emit('new-friend', {
 							'friend': friend
 						});
 

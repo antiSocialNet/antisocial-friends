@@ -20,6 +20,8 @@ describe('friends', function () {
 	var client3 = request.agent();
 	var client4 = request.agent();
 
+	var userTwoId;
+
 	var endpoint1 = 'http://127.0.0.1:3000/antisocial/';
 	var endpoint2 = 'http://127.0.0.1:3000/antisocial/';
 	var endpoint3 = 'http://127.0.0.1:3000/antisocial/';
@@ -70,6 +72,7 @@ describe('friends', function () {
 				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
 				expect(accessToken).to.be.a('string');
 				endpoint2 += res.body.result.username;
+				userTwoId = res.body.result.id;
 				done();
 			});
 	});
@@ -272,22 +275,32 @@ describe('friends', function () {
 		});
 	});
 
-	it('user1 should be able to request friend user2 again', function (done) {
-		client1.get('http://127.0.0.1:3000/antisocial/user-one/request-friend?endpoint=' + endpoint2).end(function (err, res) {
+	it('create an invite', function (done) {
+		app.db.newInstance('invitations', {
+			'token': 'testinvite',
+			'userId': userTwoId
+		}, function (err, invite) {
+			expect(err).to.be(null);
+			done()
+		})
+	});
+
+	it('user1 should be able to request friend user2 again with invite', function (done) {
+		client1.get('http://127.0.0.1:3000/antisocial/user-one/request-friend?endpoint=' + encodeURIComponent(endpoint2) + '&invite=testinvite').end(function (err, res) {
 			expect(res.status).to.be(200);
 			expect(res.body.status).to.equal('ok');
 			done();
 		});
 	});
 
-	it('user2 should be able to accept friend request from user1 again', function (done) {
+	it('user2 should not be able to accept friend request that is already accepted', function (done) {
 		client2.post('http://127.0.0.1:3000/antisocial/user-two/friend-request-accept')
 			.type('form')
 			.send({
 				'endpoint': endpoint1
 			}).end(function (err, res) {
 				expect(res.status).to.be(200);
-				expect(res.body.status).to.equal('ok');
+				expect(res.body.status).to.equal('error');
 				done();
 			});
 	});

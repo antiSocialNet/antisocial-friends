@@ -232,14 +232,9 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 						'uniqueRemoteUsername': unique ? exchange.username + '-' + unique : exchange.username
 					};
 
-
 					if (invitation) {
 						update.status = 'accepted';
 						update.audiences = ['public', 'friends'];
-
-						router.eventHandler.emit('friend-request-accepted', {
-							'friend': friend
-						});
 					}
 
 					db.updateInstance('friends', friend.id, update, function (err, friend) {
@@ -271,9 +266,16 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 				}
 			}
 			else {
-				router.eventHandler.emit('new-friend-request', {
-					'friend': friend
-				});
+				if (friend.inviteToken) {
+					router.eventHandler.emit('new-friend', {
+						'friend': friend
+					});
+				}
+				else {
+					router.eventHandler.emit('new-friend-request', {
+						'friend': friend
+					});
+				}
 
 				// if success hand a request token back to caller
 				res.send({

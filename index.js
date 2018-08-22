@@ -17,7 +17,8 @@ var events = require('events');
 	requestee marks requester as accepted and grants access to 'public' and 'friends' (/friend-request-accept)
 		requestee calls requester to update status (/friend-webhook action=friend-request-accepted)
 			requester marks requestee as accepted and grants access to 'public' and 'friends'
-			trigger a 'friend-request-accepted' event for requestor application
+			trigger a 'new-friend' event for requestor application
+		trigger a 'new-friend' event for requestee application
 */
 
 module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
