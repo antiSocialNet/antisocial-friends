@@ -163,7 +163,7 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                           POST -------------------->
-                          http://emtage.com/alan/friend-request
+                          http://emtage.com/ae/friend-request
                           BODY {
                             'remoteEndPoint': 'http://rhodes.com/mr',
                             'requestToken': Michaels Request Token
@@ -210,7 +210,7 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                           POST ------------------->
-                          http://emtage.com/alan/friend-exchange
+                          http://emtage.com/ae/friend-exchange
                           BODY {
                            'endpoint': http://rhodes.com/mr,
                            'requestToken': Alan's Request Token
@@ -246,8 +246,11 @@ Michael's Browser         Michael's server           Alan's server            Al
 Michael's Browser         Michael's server           Alan's server            Alan's Browser
 -----------------         ----------------          ----------------         ----------------
 
-                                                    <----------------------- GET
-                                                                             http://emtage.com/friend-request-accept?endpoint=http://rhodes.com/mr
+                                                    <----------------------- POST
+                                                                             http://emtage.com/ae/friend-request-accept
+
+                                                                             BODY { 'endpoint': http://rhodes.com/mr
+                                                                             }
 ```
 
 2. Alan's server marks the Friend record as 'accepted' and sends a POST request to Michael's server to notify him that his friend request was accepted
