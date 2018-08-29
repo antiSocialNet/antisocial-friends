@@ -6,7 +6,12 @@ var async = require('async');
 var request = require('request');
 var _ = require('lodash');
 
-module.exports = function mountRequestFriendCancel(router, config, db, authUserMiddleware) {
+module.exports = function mountRequestFriendCancel(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	var cancelRegex = /^\/([a-zA-Z0-9\-.]+)\/request-friend-cancel$/;
 

@@ -3,7 +3,12 @@ var VError = require('verror').VError;
 var WError = require('verror').WError;
 var async = require('async');
 
-module.exports = function mountFriendWebhook(router, config, db, authUserMiddleware) {
+module.exports = function mountFriendWebhook(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	var webhookRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-webhook$/;
 
@@ -74,7 +79,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 							return cb(e, friend);
 						}
 
-						router.eventHandler.emit('new-friend', {
+						antisocialApp.emit('new-friend', {
 							'friend': friend
 						});
 
@@ -83,7 +88,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 				}
 				else if (req.body.action === 'friend-update') {
 
-					router.eventHandler.emit('friend-updated', {
+					antisocialApp.emit('friend-updated', {
 						'friend': friend
 					});
 
@@ -91,7 +96,7 @@ module.exports = function mountFriendWebhook(router, config, db, authUserMiddlew
 				}
 				else if (req.body.action === 'friend-request-declined' || req.body.action === 'request-friend-cancel' || req.body.action === 'friend-delete') {
 
-					router.eventHandler.emit('friend-deleted', {
+					antisocialApp.emit('friend-deleted', {
 						'friend': JSON.parse(JSON.stringify(friend))
 					});
 

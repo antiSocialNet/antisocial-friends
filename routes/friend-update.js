@@ -6,7 +6,13 @@ var async = require('async');
 var request = require('request');
 var _ = require('lodash');
 
-module.exports = function mountFriendUpdate(router, config, db, authUserMiddleware) {
+module.exports = function mountFriendUpdate(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
+
 	var updateRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-update$/;
 
 	console.log('mounting GET /username/friend-update', updateRegex);
@@ -115,7 +121,7 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 
 				if (newStatus === 'delete' || newStatus === 'block') {
 
-					router.eventHandler.emit('friend-deleted', {
+					antisocialApp.emit('friend-deleted', {
 						'friend': JSON.parse(JSON.stringify(friend))
 					});
 
@@ -141,7 +147,7 @@ module.exports = function mountFriendUpdate(router, config, db, authUserMiddlewa
 							return cb(e);
 						}
 
-						router.eventHandler.emit('friend-updated', {
+						antisocialApp.emit('friend-updated', {
 							'friend': friend
 						});
 

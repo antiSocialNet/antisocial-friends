@@ -3,7 +3,12 @@ var debug = require('debug')('antisocial-friends');
 var VError = require('verror').VError;
 var WError = require('verror').WError;
 
-module.exports = function mountFriendExchangeToken(router, config, db, authUserMiddleware) {
+module.exports = function mountFriendExchangeToken(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	var exchangeRegex = /^\/([a-zA-Z0-9\-.]+)\/exchange-token$/;
 

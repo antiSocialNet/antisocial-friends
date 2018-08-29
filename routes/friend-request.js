@@ -10,7 +10,12 @@ var async = require('async');
 var request = require('request');
 var _ = require('lodash');
 
-module.exports = function mountFriendRequest(router, config, db, authUserMiddleware) {
+module.exports = function mountFriendRequest(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	var testRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request$/;
 
@@ -266,12 +271,12 @@ module.exports = function mountFriendRequest(router, config, db, authUserMiddlew
 			}
 			else {
 				if (friend.inviteToken) {
-					router.eventHandler.emit('new-friend', {
+					antisocialApp.emit('new-friend', {
 						'friend': friend
 					});
 				}
 				else {
-					router.eventHandler.emit('new-friend-request', {
+					antisocialApp.emit('new-friend-request', {
 						'friend': friend
 					});
 				}

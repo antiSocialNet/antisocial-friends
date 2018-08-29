@@ -29,18 +29,17 @@ describe('friends', function () {
 	var endpointBad = 'http://127.0.0.1:3000/antisocial/bad';
 
 	var app = require('../app');
-	var server;
+
 	before(function (done) {
-		server = app.listen(3000);
+		app.start(3000);
 		done();
 	});
 
 	after(function () {
 		console.log('friends: %j', app.db.collections.friends);
 		console.log('blocks: %j', app.db.collections.blocks);
-
-		server.close();
-	})
+		app.stop();
+	});
 
 	it('should be able to create account 1', function (done) {
 		client1.post('http://127.0.0.1:3000/register')
@@ -304,7 +303,6 @@ describe('friends', function () {
 				done();
 			});
 	});
-
 });
 
 function getCookie(headers, id) {

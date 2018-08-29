@@ -107,6 +107,9 @@ var db = new dbHandler();
 
 function getAuthenticatedUser(req, res, next) {
   var token = req.cookies.access_token;
+  if (req.body && req.body.access_token) {
+    token = req.body.access_token
+  }
   db.getInstances('users', [{
     'property': 'token',
     'value': token
@@ -117,12 +120,13 @@ function getAuthenticatedUser(req, res, next) {
 }
 
 app.db = db;
-
-var antisocialApp = antisocial(app, {
+var config = {
   'APIPrefix': '/antisocial',
   'publicHost': 'http://127.0.0.1:3000',
   'port': 3000
-}, db, getAuthenticatedUser);
+};
+
+var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
 
 antisocialApp.on('new-friend-request', function (e) {
   console.log('antisocial new-friend-request %j', e.friend.remoteEndPoint);
@@ -140,6 +144,31 @@ antisocialApp.on('friend-deleted', function (e) {
   console.log('antisocial friend-deleted %j', e.friend.remoteEndPoint);
 });
 
+antisocialApp.on('open-activity-connection', function (e) {
+  console.log('antisocial new-activity-connection %j', e.info.key);
+  e.socket.emit('data', 'hello ' + e.info.friend.remoteName);
+});
+
+antisocialApp.on('close-activity-connection', function (e) {
+  console.log('antisocial new-activity-connection %j', e.info.key);
+});
+
+antisocialApp.on('activity-data', function (e) {
+  console.log('antisocial activity-data from %s to %s %j', e.info.friend.remoteName, e.info.user.name, e.data);
+});
+
+antisocialApp.on('open-notification-connection', function (e) {
+  console.log('antisocial new-notification-connection %j', e.info.key);
+  e.socket.emit('data', 'hello world');
+});
+
+antisocialApp.on('close-notification-connection', function (e) {
+  console.log('antisocial new-notification-connection %j', e.info.key);
+});
+
+antisocialApp.on('notification-data', function (e) {
+  console.log('antisocial notification-data %j', e.info.key, e.data);
+});
 
 // user register route for tests
 var router = express.Router();
@@ -159,5 +188,23 @@ router.all('/register', function (req, res) {
 });
 
 app.use(router);
+
+var server = null;
+
+app.start = function (port) {
+  console.log('listenting on', port);
+  var http = require('http');
+  server = http.createServer(app);
+  var listener = server.listen(port);
+  require('./routes/websockets-activity-mount')(antisocialApp, listener);
+};
+
+app.stop = function () {
+  server.close();
+};
+
+if (require.main === module) {
+  app.start(3000);
+}
 
 module.exports = app;

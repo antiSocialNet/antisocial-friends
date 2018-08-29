@@ -6,7 +6,12 @@ var async = require('async');
 var request = require('request');
 var _ = require('lodash');
 
-module.exports = function mountFriendRequestAccept(router, config, db, authUserMiddleware) {
+module.exports = function mountFriendRequestAccept(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	var acceptRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request-accept$/;
 
@@ -119,7 +124,7 @@ module.exports = function mountFriendRequestAccept(router, config, db, authUserM
 				});
 			}
 
-			router.eventHandler.emit('new-friend', {
+			antisocialApp.emit('new-friend', {
 				'friend': friend
 			});
 

@@ -31,20 +31,21 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 		router = express.Router();
 	}
 
-	router.eventHandler = new events.EventEmitter();
+	var antisocialApp = new events.EventEmitter();
 
-	require('./routes/request-friend-cancel')(router, config, dbAdaptor, authUserMiddleware);
-	require('./routes/request-friend')(router, config, dbAdaptor, authUserMiddleware);
+	antisocialApp.router = router;
+	antisocialApp.config = config;
+	antisocialApp.db = dbAdaptor;
+	antisocialApp.authUserMiddleware = authUserMiddleware;
 
-	require('./routes/friend-request-accept')(router, config, dbAdaptor, authUserMiddleware);
-	require('./routes/friend-request-decline')(router, config, dbAdaptor, authUserMiddleware);
-	require('./routes/friend-request')(router, config, dbAdaptor, authUserMiddleware);
-
-	require('./routes/friend-webhook')(router, config, dbAdaptor, authUserMiddleware);
-	require('./routes/friend-update')(router, config, dbAdaptor, authUserMiddleware);
-
-	require('./routes/friend-exchange-token')(router, config, dbAdaptor, authUserMiddleware);
-
+	require('./routes/request-friend-cancel')(antisocialApp);
+	require('./routes/request-friend')(antisocialApp);
+	require('./routes/friend-request-accept')(antisocialApp);
+	require('./routes/friend-request-decline')(antisocialApp);
+	require('./routes/friend-request')(antisocialApp);
+	require('./routes/friend-webhook')(antisocialApp);
+	require('./routes/friend-update')(antisocialApp);
+	require('./routes/friend-exchange-token')(antisocialApp);
 
 	if (config.APIPrefix) {
 		app.use(config.APIPrefix, router);
@@ -53,5 +54,7 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 		app.use(router);
 	}
 
-	return router.eventHandler;
+	app.antisocial = antisocialApp;
+
+	return antisocialApp;
 };

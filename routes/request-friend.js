@@ -11,7 +11,12 @@ var WError = require('verror').WError;
 var _ = require('lodash');
 
 
-module.exports = function mountRequestFriend(router, config, db, authUserMiddleware) {
+module.exports = function mountRequestFriend(antisocialApp) {
+
+	var router = antisocialApp.router;
+	var config = antisocialApp.config;
+	var db = antisocialApp.db;
+	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	var testRegex = /^\/([a-zA-Z0-9\-.]+)\/request-friend$/;
 
