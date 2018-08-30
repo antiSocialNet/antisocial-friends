@@ -20,7 +20,7 @@ module.exports = function mountRequestFriend(antisocialApp) {
 
 	var testRegex = /^\/([a-zA-Z0-9\-.]+)\/request-friend$/;
 
-	console.log('mounting GET /username/request-friend', testRegex);
+	debug('mounting GET /username/request-friend', testRegex);
 
 	router.get(testRegex, authUserMiddleware, function (req, res) {
 		var matches = req.path.match(testRegex);

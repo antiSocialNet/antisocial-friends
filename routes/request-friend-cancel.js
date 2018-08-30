@@ -15,7 +15,7 @@ module.exports = function mountRequestFriendCancel(antisocialApp) {
 
 	var cancelRegex = /^\/([a-zA-Z0-9\-.]+)\/request-friend-cancel$/;
 
-	console.log('mounting GET /username/request-friend-cancel', cancelRegex);
+	debug('mounting GET /username/request-friend-cancel', cancelRegex);
 
 	router.post(cancelRegex, authUserMiddleware, function handleRequestFriendCancel(req, res) {
 		var matches = req.path.match(cancelRegex);

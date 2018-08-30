@@ -12,7 +12,7 @@ module.exports = function mountFriendExchangeToken(antisocialApp) {
 
 	var exchangeRegex = /^\/([a-zA-Z0-9\-.]+)\/exchange-token$/;
 
-	console.log('mounting GET /username/exchange-token', exchangeRegex);
+	debug('mounting GET /username/exchange-token', exchangeRegex);
 
 	router.post(exchangeRegex, function (req, res) {
 		var matches = req.path.match(exchangeRegex);

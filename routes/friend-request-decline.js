@@ -15,7 +15,7 @@ module.exports = function mountFriendRequestDecline(antisocialApp) {
 
 	var declineRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request-decline$/;
 
-	console.log('mounting GET /username/friend-request-decline', declineRegex);
+	debug('mounting GET /username/friend-request-decline', declineRegex);
 
 	router.post(declineRegex, authUserMiddleware, function handleFriendRequestDecline(req, res) {
 		var matches = req.path.match(declineRegex);

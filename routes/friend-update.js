@@ -15,7 +15,7 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 
 	var updateRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-update$/;
 
-	console.log('mounting GET /username/friend-update', updateRegex);
+	debug('mounting GET /username/friend-update', updateRegex);
 
 	router.post(updateRegex, authUserMiddleware, function handleFriendUpdate(req, res) {
 		var matches = req.path.match(updateRegex);
@@ -122,7 +122,8 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 				if (newStatus === 'delete' || newStatus === 'block') {
 
 					antisocialApp.emit('friend-deleted', {
-						'friend': JSON.parse(JSON.stringify(friend))
+						'friend': JSON.parse(JSON.stringify(friend)),
+						'user': currentUser
 					});
 
 					db.deleteInstance('friends', friend.id, function (err, friend) {

@@ -12,7 +12,7 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 
 	var webhookRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-webhook$/;
 
-	console.log('mounting GET /username/friend-webhook', webhookRegex);
+	debug('mounting GET /username/friend-webhook', webhookRegex);
 
 	router.post(webhookRegex, function handleFriendRequest(req, res) {
 		var matches = req.path.match(webhookRegex);
@@ -80,7 +80,8 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 						}
 
 						antisocialApp.emit('new-friend', {
-							'friend': friend
+							'friend': friend,
+							'user': user
 						});
 
 						cb(null, friend);
@@ -97,7 +98,8 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 				else if (req.body.action === 'friend-request-declined' || req.body.action === 'request-friend-cancel' || req.body.action === 'friend-delete') {
 
 					antisocialApp.emit('friend-deleted', {
-						'friend': JSON.parse(JSON.stringify(friend))
+						'friend': JSON.parse(JSON.stringify(friend)),
+						'user': user
 					});
 
 					db.deleteInstance('friends', friend.id, function (err, friend) {

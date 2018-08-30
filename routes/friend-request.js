@@ -19,7 +19,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 
 	var testRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request$/;
 
-	console.log('mounting GET /username/friend-request', testRegex);
+	debug('mounting GET /username/friend-request', testRegex);
 
 	router.post(testRegex, function handleFriendRequest(req, res) {
 		var matches = req.path.match(testRegex);
@@ -193,16 +193,16 @@ module.exports = function mountFriendRequest(antisocialApp) {
 				request.post(options, function (err, response, body) {
 					if (err) {
 						var e = new VError(err, '/friend-request exchangeToken request error');
-						return cb(e, friend);
+						return cb(e, user, friend);
 					}
 					if (response.statusCode !== 200) {
 						var e = new VError(err, '/friend-request exchangeToken got http status: ' + response.statusCode);
-						return cb(e, friend);
+						return cb(e, user, friend);
 					}
 
 					if (!_.has(body, 'status') || !_.has(body, 'accessToken') || !_.has(body, 'publicKey')) {
 						e = new VError(err, '/friend-request exchangeToken got unexpected response %j', body);
-						return cb(e, friend);
+						return cb(e, user, friend);
 					}
 
 					debug('/friend-request exchangeToken got ', body);
@@ -217,7 +217,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 				}], function (err, friends) {
 					if (err) {
 						var e = new VError(err, '/friend-request createPendingFriend failed reading friends');
-						return cb(e, friend);
+						return cb(e, user, friend);
 					}
 
 					var unique = 0;
@@ -244,14 +244,14 @@ module.exports = function mountFriendRequest(antisocialApp) {
 					db.updateInstance('friends', friend.id, update, function (err, friend) {
 						if (err) {
 							var e = new VError(err, '/friend-request saveToken error');
-							return cb(e, friend);
+							return cb(e, user, friend);
 						}
 
-						cb(null, friend);
+						cb(null, user, friend);
 					});
 				});
 			}
-		], function (err, friend) {
+		], function (err, user, friend) {
 			if (err) {
 				var e = new WError(err, 'request-friend failed');
 				debug('friend-request error', e.cause().message);
@@ -272,12 +272,14 @@ module.exports = function mountFriendRequest(antisocialApp) {
 			else {
 				if (friend.inviteToken) {
 					antisocialApp.emit('new-friend', {
-						'friend': friend
+						'friend': friend,
+						'user': user
 					});
 				}
 				else {
 					antisocialApp.emit('new-friend-request', {
-						'friend': friend
+						'friend': friend,
+						'user': user
 					});
 				}
 

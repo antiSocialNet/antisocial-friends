@@ -13,7 +13,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 	var db = antisocialApp.db;
 	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
-	console.log('mounting ws /antisocial-activity');
+	debug('mounting ws /antisocial-activity');
 
 	if (!antisocialApp.openActivityListeners) {
 		antisocialApp.openActivityListeners = {};

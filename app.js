@@ -129,19 +129,19 @@ var config = {
 var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
 
 antisocialApp.on('new-friend-request', function (e) {
-  console.log('antisocial new-friend-request %j', e.friend.remoteEndPoint);
+  console.log('antisocial new-friend-request %s %j', e.user.username, e.friend.remoteEndPoint);
 });
 
 antisocialApp.on('new-friend', function (e) {
-  console.log('antisocial new-friend %j', e.friend.remoteEndPoint);
+  console.log('antisocial new-friend %s %j', e.user.username, e.friend.remoteEndPoint);
 });
 
 antisocialApp.on('friend-updated', function (e) {
-  console.log('antisocial friend-updated %j', e.friend.remoteEndPoint);
+  console.log('antisocial friend-updated %s %j', e.user.username, e.friend.remoteEndPoint);
 });
 
 antisocialApp.on('friend-deleted', function (e) {
-  console.log('antisocial friend-deleted %j', e.friend.remoteEndPoint);
+  console.log('antisocial friend-deleted %s %j', e.user.username, e.friend.remoteEndPoint);
 });
 
 antisocialApp.on('open-activity-connection', function (e) {
@@ -192,7 +192,6 @@ app.use(router);
 var server = null;
 
 app.start = function (port) {
-  console.log('listenting on', port);
   var http = require('http');
   server = http.createServer(app);
   var listener = server.listen(port);

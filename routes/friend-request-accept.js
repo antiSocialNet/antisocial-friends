@@ -15,7 +15,7 @@ module.exports = function mountFriendRequestAccept(antisocialApp) {
 
 	var acceptRegex = /^\/([a-zA-Z0-9\-.]+)\/friend-request-accept$/;
 
-	console.log('mounting GET /username/friend-request-accept', acceptRegex);
+	debug('mounting GET /username/friend-request-accept', acceptRegex);
 
 	router.post(acceptRegex, authUserMiddleware, function handleFriendRequestAccept(req, res) {
 		var matches = req.path.match(acceptRegex);
@@ -125,7 +125,8 @@ module.exports = function mountFriendRequestAccept(antisocialApp) {
 			}
 
 			antisocialApp.emit('new-friend', {
-				'friend': friend
+				'friend': friend,
+				'user': currentUser
 			});
 
 			res.send({
