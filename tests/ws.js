@@ -36,8 +36,6 @@ describe('friends', function () {
 	});
 
 	after(function () {
-		console.log('friends: %j', app.db.collections.friends);
-		console.log('blocks: %j', app.db.collections.blocks);
 		app.stop();
 	});
 

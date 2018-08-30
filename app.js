@@ -144,22 +144,51 @@ antisocialApp.on('friend-deleted', function (e) {
   console.log('antisocial friend-deleted %s %j', e.user.username, e.friend.remoteEndPoint);
 });
 
+var cryptography = require('antisocial-encryption');
+
 antisocialApp.on('open-activity-connection', function (e) {
+  var friend = e.info.friend;
+  var privateKey = friend.keys.private;
+  var publicKey = friend.remotePublicKey;
+
   console.log('antisocial new-activity-connection %j', e.info.key);
-  e.socket.emit('data', 'hello ' + e.info.friend.remoteName);
+
+  var data = JSON.stringify({
+    'foo': 'bar'
+  });
+  var message = cryptography.encrypt(publicKey, privateKey, data);
+  e.socket.emit('data', message);
 });
 
 antisocialApp.on('close-activity-connection', function (e) {
   console.log('antisocial new-activity-connection %j', e.info.key);
 });
 
+
 antisocialApp.on('activity-data', function (e) {
-  console.log('antisocial activity-data from %s to %s %j', e.info.friend.remoteName, e.info.user.name, e.data);
+  var friend = e.info.friend;
+  var user = e.info.user;
+  var message = e.data;
+
+  var privateKey = friend.keys.private;
+  var publicKey = friend.remotePublicKey;
+
+  var decrypted = cryptography.decrypt(publicKey, privateKey, message);
+
+  if (!decrypted.valid) { // could not validate signature
+    console.log('WatchNewsFeedItem decryption signature validation error', message);
+    return;
+  }
+
+  message = JSON.parse(decrypted.data);
+  console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, message);
 });
 
 antisocialApp.on('open-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
-  e.socket.emit('data', 'hello world');
+  e.socket.emit('data', {
+    'hello': 'world'
+  });
 });
 
 antisocialApp.on('close-notification-connection', function (e) {

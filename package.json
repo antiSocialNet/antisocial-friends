@@ -7,7 +7,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "antisocial-encryption": "^1.0.2",
+    "antisocial-encryption": "^1.0.5",
     "async": "^2.6.1",
     "crc": "^3.8.0",
     "debug": "~2.6.9",
@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "assert": "^1.4.1",
+    "cookie-parser": "~1.4.3",
     "expect.js": "^0.3.1",
-    "superagent": "^3.8.3",
-    "cookie-parser": "~1.4.3"
+    "superagent": "^3.8.3"
   },
   "repository": {
     "type": "git",
