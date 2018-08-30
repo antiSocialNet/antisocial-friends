@@ -272,14 +272,18 @@ module.exports = function mountFriendRequest(antisocialApp) {
 			else {
 				if (friend.inviteToken) {
 					antisocialApp.emit('new-friend', {
-						'friend': friend,
-						'user': user
+						'info': {
+							'friend': friend,
+							'user': user
+						}
 					});
 				}
 				else {
 					antisocialApp.emit('new-friend-request', {
-						'friend': friend,
-						'user': user
+						'info': {
+							'friend': friend,
+							'user': user
+						}
 					});
 				}
 

@@ -125,8 +125,10 @@ module.exports = function mountFriendRequestAccept(antisocialApp) {
 			}
 
 			antisocialApp.emit('new-friend', {
-				'friend': friend,
-				'user': currentUser
+				'info': {
+					'friend': friend,
+					'user': currentUser
+				}
 			});
 
 			res.send({

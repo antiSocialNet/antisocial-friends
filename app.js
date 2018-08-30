@@ -1,6 +1,8 @@
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var uuid = require('uuid');
+var cryptography = require('antisocial-encryption');
+
 
 var app = express();
 
@@ -106,10 +108,20 @@ var db = new dbHandler();
 */
 
 function getAuthenticatedUser(req, res, next) {
-  var token = req.cookies.access_token;
-  if (req.body && req.body.access_token) {
-    token = req.body.access_token
+  var token;
+
+  if (req.cookies && req.cookies.access_token) {
+    token = req.cookies.access_token;
   }
+
+  if (req.body && req.body.access_token) {
+    token = req.body.access_token;
+  }
+
+  if (!token) {
+    return next();
+  }
+
   db.getInstances('users', [{
     'property': 'token',
     'value': token
@@ -120,84 +132,65 @@ function getAuthenticatedUser(req, res, next) {
 }
 
 app.db = db;
-var config = {
-  'APIPrefix': '/antisocial',
-  'publicHost': 'http://127.0.0.1:3000',
-  'port': 3000
-};
 
-var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
-
-antisocialApp.on('new-friend-request', function (e) {
-  console.log('antisocial new-friend-request %s %j', e.user.username, e.friend.remoteEndPoint);
-});
-
-antisocialApp.on('new-friend', function (e) {
-  console.log('antisocial new-friend %s %j', e.user.username, e.friend.remoteEndPoint);
-});
-
-antisocialApp.on('friend-updated', function (e) {
-  console.log('antisocial friend-updated %s %j', e.user.username, e.friend.remoteEndPoint);
-});
-
-antisocialApp.on('friend-deleted', function (e) {
-  console.log('antisocial friend-deleted %s %j', e.user.username, e.friend.remoteEndPoint);
-});
-
-var cryptography = require('antisocial-encryption');
-
-antisocialApp.on('open-activity-connection', function (e) {
-  var friend = e.info.friend;
-  var privateKey = friend.keys.private;
-  var publicKey = friend.remotePublicKey;
-
-  console.log('antisocial new-activity-connection %j', e.info.key);
-
-  var data = JSON.stringify({
-    'foo': 'bar'
+function setupAntisocialEvents(antisocialApp) {
+  antisocialApp.on('new-friend-request', function (e) {
+    console.log('antisocial new-friend-request %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
   });
-  var message = cryptography.encrypt(publicKey, privateKey, data);
-  e.socket.emit('data', message);
-});
 
-antisocialApp.on('close-activity-connection', function (e) {
-  console.log('antisocial new-activity-connection %j', e.info.key);
-});
-
-
-antisocialApp.on('activity-data', function (e) {
-  var friend = e.info.friend;
-  var user = e.info.user;
-  var message = e.data;
-
-  var privateKey = friend.keys.private;
-  var publicKey = friend.remotePublicKey;
-
-  var decrypted = cryptography.decrypt(publicKey, privateKey, message);
-
-  if (!decrypted.valid) { // could not validate signature
-    console.log('WatchNewsFeedItem decryption signature validation error', message);
-    return;
-  }
-
-  message = JSON.parse(decrypted.data);
-  console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, message);
-});
-
-antisocialApp.on('open-notification-connection', function (e) {
-  console.log('antisocial new-notification-connection %j', e.info.key);
-  e.socket.emit('data', {
-    'hello': 'world'
+  antisocialApp.on('new-friend', function (e) {
+    console.log('antisocial new-friend %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
   });
-});
 
-antisocialApp.on('close-notification-connection', function (e) {
-  console.log('antisocial new-notification-connection %j', e.info.key);
-});
+  antisocialApp.on('friend-updated', function (e) {
+    console.log('antisocial friend-updated %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+  });
 
-antisocialApp.on('notification-data', function (e) {
-  console.log('antisocial notification-data %j', e.info.key, e.data);
-});
+  antisocialApp.on('friend-deleted', function (e) {
+    console.log('antisocial friend-deleted %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('open-activity-connection', function (e) {
+    var friend = e.info.friend;
+
+    console.log('antisocial new-activity-connection %j', e.info.key);
+
+    var data = JSON.stringify({
+      'hello': friend.remoteName
+    });
+
+    var message = cryptography.encrypt(friend.remotePublicKey, friend.keys.private, data);
+
+    e.socket.emit('data', message);
+  });
+
+  antisocialApp.on('close-activity-connection', function (e) {
+    console.log('antisocial new-activity-connection %j', e.info.key);
+  });
+
+
+  antisocialApp.on('activity-data', function (e) {
+    var friend = e.info.friend;
+    var user = e.info.user;
+    var message = e.data;
+    console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, message);
+  });
+
+  antisocialApp.on('open-notification-connection', function (e) {
+    console.log('antisocial new-notification-connection %j', e.info.key);
+    e.socket.emit('data', {
+      'hello': 'world'
+    });
+  });
+
+  antisocialApp.on('close-notification-connection', function (e) {
+    console.log('antisocial new-notification-connection %j', e.info.key);
+  });
+
+  antisocialApp.on('notification-data', function (e) {
+    console.log('antisocial notification-data %j', e.info.key, e.data);
+  });
+}
 
 // user register route for tests
 var router = express.Router();
@@ -224,7 +217,17 @@ app.start = function (port) {
   var http = require('http');
   server = http.createServer(app);
   var listener = server.listen(port);
-  require('./routes/websockets-activity-mount')(antisocialApp, listener);
+
+
+  var config = {
+    'APIPrefix': '/antisocial',
+    'publicHost': 'http://127.0.0.1:3000',
+    'port': 3000
+  };
+
+  var antisocialApp = antisocial(app, config, db, getAuthenticatedUser, listener);
+
+  setupAntisocialEvents(antisocialApp);
 };
 
 app.stop = function () {

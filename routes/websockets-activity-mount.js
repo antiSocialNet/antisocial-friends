@@ -7,6 +7,7 @@ var VError = require('verror').VError;
 var async = require('async');
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
+var cryptography = require('antisocial-encryption');
 
 module.exports = function websocketsActivityMount(antisocialApp, expressListener) {
 	var config = antisocialApp.config;
@@ -123,6 +124,19 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 			});
 
 			socket.on('data', function (data) {
+				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+				if (!decrypted.valid) { // could not validate signature
+					console.log('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
+					return;
+				}
+
+				try {
+					data = JSON.parse(decrypted.data);
+				}
+				catch (e) {
+					data = decrypted.data;
+				}
+
 				antisocialApp.emit('activity-data', {
 					'info': socket.antisocial,
 					'data': data

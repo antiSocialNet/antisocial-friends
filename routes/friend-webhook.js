@@ -80,8 +80,10 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 						}
 
 						antisocialApp.emit('new-friend', {
-							'friend': friend,
-							'user': user
+							'info': {
+								'friend': friend,
+								'user': user
+							}
 						});
 
 						cb(null, friend);
@@ -90,7 +92,10 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 				else if (req.body.action === 'friend-update') {
 
 					antisocialApp.emit('friend-updated', {
-						'friend': friend
+						'info': {
+							'friend': friend,
+							'user': user
+						}
 					});
 
 					cb(null, friend);
@@ -98,8 +103,10 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 				else if (req.body.action === 'friend-request-declined' || req.body.action === 'request-friend-cancel' || req.body.action === 'friend-delete') {
 
 					antisocialApp.emit('friend-deleted', {
-						'friend': JSON.parse(JSON.stringify(friend)),
-						'user': user
+						'info': {
+							'friend': JSON.parse(JSON.stringify(friend)),
+							'user': user
+						}
 					});
 
 					db.deleteInstance('friends', friend.id, function (err, friend) {

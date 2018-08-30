@@ -31,8 +31,8 @@ var config = {
 
 **db** is an abstract data store that will be called when the app needs to
 store or retrieve data from the database. For a simple example implementation
-see app.js. Yours should implement the required methods to work within
-your environment (mysql, mongo etc.)
+see app.js for a simple memory store implementation of the methods. Yours
+should implement the required methods to work within your environment (mysql, mongo etc.)
 
 This app uses the following data collections:
 
@@ -47,31 +47,98 @@ which is set to the user.id when created
 **getAuthenticatedUser** is an express middleware function that gets the current
 logged in user and exposes it on req.antisocialUser. This is application specific but typically would be a token cookie that can be used to look up a user. See simple example in app.js
 
+**listener** is an express listener
 
 This function returns an event emitter. You can handle the following events as needed. For example, to notify user about a friend request, start watching feeds etc.
 
+### new-friend-request event: a new friend request received
+Relevant details are in e.user (a user instance) and e.friend (a friend instance). Typically would be used to notify the user of the pending friend request.
 ```
 antisocialApp.on('new-friend-request', function (e) {
-  console.log('antisocial new-friend-request %j', e.friend.remoteEndPoint);
+  console.log('antisocial new-friend-request %s %s', e.user.username, e.friend.remoteEndPoint);
 });
+```
 
+### new-friend event: a new friend
+Relevant details are in e.user (a user instance) and e.friend (a friend instance). Typically would be used to notify the user's friends that they have a new friend.
+```
 antisocialApp.on('new-friend', function (e) {
   console.log('antisocial new-friend %j', e.friend.remoteEndPoint);
 });
+```
 
+### friend-updated event: the relationship has changed
+Relevant details are in e.user (a user instance) and e.friend (a friend instance). This might be a change of server address or the friend might have changed the audiences for the user. Typically user would remove cache of notifications and re-load.
+```
 antisocialApp.on('friend-updated', function (e) {
   console.log('antisocial friend-updated %j', e.friend.remoteEndPoint);
 });
+```
 
+### friend-deleted event: either user or the friend has deleted the other
+Typically user would clean up the database and remove anything about or by the friend.
+```
 antisocialApp.on('friend-deleted', function (e) {
   console.log('antisocial friend-deleted %j', e.friend.remoteEndPoint);
 });
+```
 
+### open-activity-connection event: a friend activity feed has been connected. Typically would hook up any process that would create activity entries to be transmitted to friends and to hook up functions to receive and process activity from friends.
+```
+antisocialApp.on('open-activity-connection', function (e) {
+  console.log('antisocial new-activity-connection for %s %s', e.info.user.username, e.info.friend.remoteEndPoint);
+});
+```
+
+### close-activity-connection: activity feed closed. Typically used to clean up any event handlers set up in open-activity-connection.
+```
+antisocialApp.on('close-activity-connection', function (e) {
+  console.log('antisocial new-activity-connection %j', e.info.key);
+});
+```
+
+### activity-data event. The server has received activity data. Typically would be used to update any cached events and notify the user that something has happened. The data of the event is encrypted user to user for transmission.
+```
+antisocialApp.on('activity-data', function (e) {
+  var friend = e.info.friend;
+  var user = e.info.user;
+  var message = e.data;
+  console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, message);
+});
+```
+
+### open-notification-connection event. The user has opened the notification feed. Typically used by the application to notify the user's client app or browser of relevant activity events.
+```
+antisocialApp.on('open-notification-connection', function (e) {
+  console.log('antisocial new-notification-connection %j', e.info.key);
+});
+```
+
+### close-notification-connection event
+```
+antisocialApp.on('close-notification-connection', function (e) {
+  console.log('antisocial new-notification-connection %j', e.info.key);
+});
+```
+
+### notification-data event
+```
+antisocialApp.on('notification-data', function (e) {
+  console.log('antisocial notification-data %j', e.info.key, e.data);
+});
 ```
 
 ### Friends
 
 The result of a friend request and a friend accept is 2 friends records, one owned by the requestor and one by the requestee (who could be on different servers). The requestor's is marked as 'originator'. The structure contains exchanged key pairs that can be used to communicate securely.
+
+### User properties
+
+### Friend Invitation properties
+
+### Block list properties
+
+### Friend Properties
 
 ```
 {
@@ -122,8 +189,29 @@ The result of a friend request and a friend accept is 2 friends records, one own
 }
 ```
 
-### Protocol
-## antiSocial Friend Protocol
+## AntiSocial Friend Protocol
+
+protocol for making a friend request
+------------------------------------
+```
+requester sets up pending Friend data on requester's server (/request-friend)
+	requester calls requestee with a requestToken
+		requestee sets up pending Friend data on requestee's server (/friend-request)
+		requestee calls requester to exchange the requestToken for an accessToken and publicKey (/friend-exchange-token)
+		requestee returns requestToken to requester
+		requestee triggers 'new-friend-request' event for requestee application
+	requester calls requestee to exchange requestToken for accessToken and publicKey (/friend-exchange-token)
+```
+
+protocol for accepting a friend request
+---------------------------------------
+```
+requestee marks requester as accepted and grants access to 'public' and 'friends' (/friend-request-accept)
+	requestee calls requester to update status (/friend-webhook action=friend-request-accepted)
+		requester marks requestee as accepted and grants access to 'public' and 'friends'
+		trigger a 'new-friend' event for requestor application
+	trigger a 'new-friend' event for requestee application
+```
 
 At the end of this protocol both users will have a Friend record holding the accessToken and the public key of the friend. With these credentials they can exchange signed encrypted messages for notifying each other of activity in their accounts.
 
@@ -133,11 +221,10 @@ At the end of this protocol both users will have a Friend record holding the acc
 ### Friend Request
 ---
 
-Use case: Michael wants to friend Alan and already knows the address of Alan's server endpoint.
-`http://emtage.com/ae`
+Use case: Michael wants to friend Alan and already knows the address of Alan's server antisocial endpoint.
+`http://emtage.com/antisocial/ae`
 
 Michael logs on to his account on his server.
-`http://rhodes.com/mr`
 
 Michael enters Alan's address on the friend request form.
 
@@ -154,7 +241,7 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
 GET --------------------->
-http://rhodes.com/mr/request-friend?endpoint=http://emtage.com/ae
+http://rhodes.com/antisocial/mr/request-friend?endpoint=http://emtage.com/antisocial/ae
 ```
 
 2. Michael's server sends a POST request to Alan's server to initiate the friend request.
@@ -163,9 +250,9 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                           POST -------------------->
-                          http://emtage.com/ae/friend-request
+                          http://emtage.com/antisocial/ae/friend-request
                           BODY {
-                            'remoteEndPoint': 'http://rhodes.com/mr',
+                            'remoteEndPoint': 'http://rhodes.com/antisocial/mr',
                             'requestToken': Michaels Request Token
                           }
 ```
@@ -175,9 +262,9 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                           <------------------------ POST
-                                                    http://rhodes.com/mr/friend-exchange
+                                                    http://rhodes.com/antisocial/mr/friend-exchange
                                                     BODY {
-                                                      'endpoint': 'http://emtage.com/ae',
+                                                      'endpoint': 'http://emtage.com/antisocial/ae',
                                                       'requestToken': Michaels Request Token
                                                     }
 ```
@@ -210,9 +297,9 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                           POST ------------------->
-                          http://emtage.com/ae/friend-exchange
+                          http://emtage.com/antisocial/ae/friend-exchange
                           BODY {
-                           'endpoint': http://rhodes.com/mr,
+                           'endpoint': http://rhodes.com/antisocial/mr,
                            'requestToken': Alan's Request Token
                           }
 ```
@@ -247,9 +334,9 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                                                     <----------------------- POST
-                                                                             http://emtage.com/ae/friend-request-accept
+                                                                             http://emtage.com/antisocial/ae/friend-request-accept
 
-                                                                             BODY { 'endpoint': http://rhodes.com/mr
+                                                                             BODY { 'endpoint': http://rhodes.com/antisocial/mr
                                                                              }
 ```
 
@@ -259,7 +346,7 @@ Michael's Browser         Michael's server           Alan's server            Al
 -----------------         ----------------          ----------------         ----------------
 
                           <------------------------ POST
-                                                    http://rhodes.com/mr/friend-webhook
+                                                    http://rhodes.com/antisocial/mr/friend-webhook
                                                     BODY {
                                                       'action': 'friend-request-accepted'
                                                       'accessToken': Michael's access token

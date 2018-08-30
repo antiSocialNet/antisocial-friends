@@ -303,6 +303,27 @@ describe('friends', function () {
 				done();
 			});
 	});
+
+	it('user1 should be able to connect to user2 websockets activity feed', function (done) {
+		app.db.getInstances('users', [{
+			'property': 'username',
+			'value': 'user-one'
+		}], function (err, instances) {
+			var user = instances[0];
+			app.db.getInstances('friends', [{
+				'property': 'userId',
+				'value': user.id
+			}], function (err, instances) {
+				var friend = instances[0];
+				var subscribe = require('../routes/websockets-activity-subscribe');
+				subscribe.connect(app.antisocial, user, friend);
+				setTimeout(function () {
+					done();
+				}, 5000);
+			});
+		});
+	});
+
 });
 
 function getCookie(headers, id) {
