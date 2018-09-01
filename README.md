@@ -78,10 +78,19 @@ antisocialApp.on('friend-deleted', function (e) {
 ```
 
 ### open-activity-connection event: a friend activity feed has been connected.
-Typically would hook up any process that would create activity entries to be transmitted to friends and to hook up functions to receive and process activity from friends.
+Hook to allow app to set up a data handler for messages received on this socket. Typically would hook up any process that would create activity entries to be transmitted to friends and to hook up functions to receive and process activity from friends.
 ```
 antisocialApp.on('open-activity-connection', function (e) {
   console.log('antisocial new-activity-connection for %s %s', e.info.user.username, e.info.friend.remoteEndPoint);
+
+  var friend = e.info.friend;
+  var user = e.info.user;
+  var socket = e.socket;
+
+  // set up data handler. will be called whenever data is received on socket
+  socket.antisocial.setDataHandler(function (data) {
+    console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
+  });
 });
 ```
 
@@ -98,15 +107,6 @@ Hook to allow app to set up a data handler for messages received on this socket.
 ```
 antisocialApp.on('open-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
-
-  var friend = e.info.friend;
-  var user = e.info.user;
-  var socket = e.socket;
-
-  // set up data handler. will be called whenever data is received on socket
-  socket.antisocial.setDataHandler(function (data) {
-    console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
-  });
 });
 ```
 
@@ -114,13 +114,6 @@ antisocialApp.on('open-notification-connection', function (e) {
 ```
 antisocialApp.on('close-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
-});
-```
-
-### notification-data event
-```
-antisocialApp.on('notification-data', function (e) {
-  console.log('antisocial notification-data %j', e.info.key, e.data);
 });
 ```
 

@@ -68,7 +68,8 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 
 			socket.antisocial = {
 				'user': data.currentUser,
-				'key': data.currentUser.username
+				'key': data.currentUser.username,
+				'highwater': data.highwater || 0,
 			};
 
 			debug('websocketsNotificationsMount connection established', socket.antisocial.key);

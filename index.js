@@ -29,6 +29,7 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware, listener)
 
 	if (listener) {
 		require('./routes/websockets-activity-mount')(antisocialApp, listener);
+		require('./routes/websockets-notifications-mount')(antisocialApp, listener);
 	}
 
 	if (config.APIPrefix) {

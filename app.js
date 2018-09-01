@@ -185,10 +185,6 @@ function setupAntisocialEvents(antisocialApp) {
   antisocialApp.on('close-notification-connection', function (e) {
     console.log('antisocial new-notification-connection %j', e.info.key);
   });
-
-  antisocialApp.on('notification-data', function (e) {
-    console.log('antisocial notification-data %j', e.info.key, e.data);
-  });
 }
 
 // user register route for tests
