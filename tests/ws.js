@@ -138,7 +138,7 @@ describe('friends', function () {
 				'value': user.id
 			}], function (err, instances) {
 				var friend = instances[0];
-				var subscribe = require('../routes/websockets-activity-subscribe');
+				var subscribe = require('../lib/websockets-activity-subscribe');
 				subscribe.connect(app.antisocial, user, friend);
 				setTimeout(function () {
 					done();
