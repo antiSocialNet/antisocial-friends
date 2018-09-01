@@ -25,15 +25,15 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 	});
 
 	antisocialApp.ioActivity.on('connect', function (e) {
-		debug('/antisocial-activity connect');
+		debug('/antisocial-activity connect', e);
 	});
 
 	antisocialApp.ioActivity.on('disconnect', function (e) {
-		debug('/antisocial-activity disconnect');
+		debug('/antisocial-activity disconnect', e);
 	});
 
 	antisocialApp.ioActivity.on('error', function (e) {
-		debug('/antisocial-activity error');
+		debug('/antisocial-activity error', e);
 	});
 
 	// friend activity feed
@@ -43,7 +43,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 	IOAuth(antisocialApp.ioActivity, {
 		'timeout': 60000,
 		'authenticate': function (socket, data, callback) {
-			debug('websocketsActivityMount authenticate', data);
+			debug('websocketsActivityMount authenticate');
 
 			if (!data.friendAccessToken) {
 				callback(new VError('friendAccessToken not supplied'), false);
@@ -117,7 +117,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 				}
 			};
 
-			debug('websocketsActivityMount connection established', socket.antisocial.key);
+			debug('websocketsActivityMount connection established %s', socket.antisocial.key);
 
 			antisocialApp.openActivityListeners[socket.antisocial.key] = socket;
 
@@ -129,7 +129,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 			socket.on('data', function (data) {
 				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
 				if (!decrypted.valid) { // could not validate signature
-					console.log('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
+					debug('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
 					return;
 				}
 
@@ -146,6 +146,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 			});
 
 			socket.on('disconnect', function (reason) {
+				debug('websocketsActivityMount disconnect %s %s', socket.antisocial.key, reason);
 				antisocialApp.emit('close-activity-connection', {
 					'info': socket.antisocial,
 					'reason': reason

@@ -22,15 +22,15 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 	});
 
 	antisocialApp.ioNotifications.on('connect', function (e) {
-		debug('/antisocial-notifications connect');
+		debug('/antisocial-notifications connect', e);
 	});
 
 	antisocialApp.ioNotifications.on('disconnect', function (e) {
-		debug('/antisocial-notifications disconnect');
+		debug('/antisocial-notifications disconnect', e);
 	});
 
 	antisocialApp.ioNotifications.on('error', function (e) {
-		debug('/antisocial-notifications error');
+		debug('/antisocial-notifications error', e);
 	});
 
 	// user notification feed
@@ -73,7 +73,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 				'highwater': data.highwater || 0,
 			};
 
-			debug('websocketsNotificationsMount connection established', socket.antisocial.key);
+			debug('websocketsNotificationsMount connection established %s', socket.antisocial.key);
 
 			antisocialApp.openNotificationsListeners[socket.antisocial.key] = socket;
 
@@ -90,6 +90,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 			});
 
 			socket.on('disconnect', function (reason) {
+				debug('websocketsNotificationsMount disconnect %s %s', socket.antisocial.key, reason);
 				antisocialApp.emit('close-notification-connection', {
 					'info': socket.antisocial,
 					'reason': reason
