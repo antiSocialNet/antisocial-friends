@@ -2,7 +2,7 @@
 	mount websockets listener for incoming notifications connections (client)
 */
 
-var debug = require('debug')('websockets');
+var debug = require('debug')('antisocial-friends');
 var VError = require('verror').VError;
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
@@ -38,6 +38,8 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 	IOAuth(antisocialApp.ioNotifications, {
 		'timeout': 60000,
 		'authenticate': function (socket, data, callback) {
+			debug('websocketsNotificationsMount authenticate');
+
 			var cookie = require('cookie');
 			var cookieParser = require('cookie-parser');
 
@@ -46,7 +48,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 			}
 
 			var cookies = cookie.parse(socket.handshake.headers.cookie);
-			var signedCookies = cookieParser.signedCookies(cookies, app.locals.config.secureCookiePassword);
+			var signedCookies = cookieParser.signedCookies(cookies, config.secureCookiePassword);
 			if (!signedCookies.access_token) {
 				return callback(null, false);
 			}
@@ -65,7 +67,6 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 			});
 		},
 		'postAuthenticate': function (socket, data) {
-
 			socket.antisocial = {
 				'user': data.currentUser,
 				'key': data.currentUser.username,
