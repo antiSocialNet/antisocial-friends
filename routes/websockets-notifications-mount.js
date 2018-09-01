@@ -22,7 +22,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 	});
 
 	antisocialApp.ioNotifications.on('connect', function (e) {
-		debug('/antisocial-notifications connect', e);
+		debug('/antisocial-notifications connect');
 	});
 
 	antisocialApp.ioNotifications.on('disconnect', function (e) {

@@ -25,7 +25,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 	});
 
 	antisocialApp.ioActivity.on('connect', function (e) {
-		debug('/antisocial-activity connect', e);
+		debug('/antisocial-activity connect');
 	});
 
 	antisocialApp.ioActivity.on('disconnect', function (e) {
