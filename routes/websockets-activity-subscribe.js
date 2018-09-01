@@ -52,7 +52,10 @@ module.exports.connect = function websocketsActivitySubscribe(antisocialApp, cur
 			socket.antisocial = {
 				'key': key,
 				'friend': friend,
-				'user': currentUser
+				'user': currentUser,
+				'setDataHandler': function setDataHandler(handler) {
+					socket.antisocial.dataHandler = handler;
+				}
 			};
 
 			antisocialApp.openActivityListeners[socket.antisocial.key] = socket;
@@ -76,10 +79,9 @@ module.exports.connect = function websocketsActivitySubscribe(antisocialApp, cur
 					data = decrypted.data;
 				}
 
-				antisocialApp.emit('activity-data', {
-					'info': socket.antisocial,
-					'data': data
-				});
+				if (socket.antisocial.dataHandler) {
+					socket.antisocial.dataHandler(data);
+				}
 			});
 
 			socket.on('disconnect', function (reason) {

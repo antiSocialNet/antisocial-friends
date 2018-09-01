@@ -93,22 +93,20 @@ antisocialApp.on('close-activity-connection', function (e) {
 });
 ```
 
-### activity-data event. The server has received activity data.
-Typically would be used to update any cached events and notify the user that something has happened. The data of the event is encrypted user to user for transmission.
-```
-antisocialApp.on('activity-data', function (e) {
-  var friend = e.info.friend;
-  var user = e.info.user;
-  var message = e.data;
-  console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, message);
-});
-```
-
 ### open-notification-connection event: The user has opened the notification feed.
-Typically used by the application to notify the user's client app or browser of relevant activity events.
+Hook to allow app to set up a data handler for messages received on this socket. Typically used by the application to notify the user's client app or browser of relevant activity events.
 ```
 antisocialApp.on('open-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
+
+  var friend = e.info.friend;
+  var user = e.info.user;
+  var socket = e.socket;
+
+  // set up data handler. will be called whenever data is received on socket
+  socket.antisocial.setDataHandler(function (data) {
+    console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
+  });
 });
 ```
 

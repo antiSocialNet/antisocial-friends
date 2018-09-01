@@ -112,6 +112,9 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 				'user': data.user,
 				'highwater': data.friendHighWater || 0,
 				'key': data.user.username + '<-' + data.friend.remoteEndPoint,
+				'setDataHandler': function setDataHandler(handler) {
+					socket.antisocial.dataHandler = handler;
+				}
 			};
 
 			debug('websocketsActivityMount connection established', socket.antisocial.key);
@@ -137,10 +140,9 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 					data = decrypted.data;
 				}
 
-				antisocialApp.emit('activity-data', {
-					'info': socket.antisocial,
-					'data': data
-				});
+				if (socket.antisocial.dataHandler) {
+					socket.antisocial.dataHandler(data);
+				}
 			});
 
 			socket.on('disconnect', function (reason) {

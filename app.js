@@ -152,8 +152,15 @@ function setupAntisocialEvents(antisocialApp) {
 
   antisocialApp.on('open-activity-connection', function (e) {
     var friend = e.info.friend;
+    var user = e.info.user;
+    var socket = e.socket;
 
     console.log('antisocial new-activity-connection %j', e.info.key);
+
+    // set up data handler. will be called whenever data is received on socket
+    socket.antisocial.setDataHandler(function (data) {
+      console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
+    });
 
     var data = JSON.stringify({
       'hello': friend.remoteName
@@ -166,14 +173,6 @@ function setupAntisocialEvents(antisocialApp) {
 
   antisocialApp.on('close-activity-connection', function (e) {
     console.log('antisocial new-activity-connection %j', e.info.key);
-  });
-
-
-  antisocialApp.on('activity-data', function (e) {
-    var friend = e.info.friend;
-    var user = e.info.user;
-    var message = e.data;
-    console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, message);
   });
 
   antisocialApp.on('open-notification-connection', function (e) {
