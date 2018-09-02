@@ -6,13 +6,11 @@ Building blocks for myAntiSocial.net
 
 ## antisocial-friends
 
-This module mounts routes for any expressjs application that needs to support building and maintaining antisocial 'friend' relationships on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keys for later use exchanging encrypted messages.
-
-see tests/friend-protocol.js for example endpoint usage.
+This module mounts routes for any expressjs application that needs to support building and maintaining antisocial 'friend' relationships on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keys for later use in exchanging user to user encrypted messages over socket.io connections.
 
 ```
 var antisocial = require('antisocial-friends');
-var antisocialApp = antisocial(app, config, db, getAuthenticatedUser, listener);
+var antisocialApp = antisocial(app, config, dbAdaptor, getAuthenticatedUser, listener);
 ```
 
 ### Parameters:
@@ -29,7 +27,7 @@ var config = {
 }
 ```
 
-**db** is an abstract data store that will be called when the app needs to
+**dbAdaptor** is an abstract data store that will be called when the app needs to
 store or retrieve data from the database. For a simple example implementation
 see app.js for a simple memory store implementation of the methods and a loopback
 application adaptor below. Yours should implement the required methods to work
@@ -38,9 +36,67 @@ within your environment (mysql, mongo etc.)
 **getAuthenticatedUser** is an express middleware function that gets the current
 logged in user and exposes it on req.antisocialUser. This is application specific but typically would be a token cookie that can be used to look up a user. See simple example in app.js
 
-**listener** is an express listener for setting up socket.io listeners
+**listener** is an express http(s) listener for setting up socket.io listeners
 
-This function returns **antisocialApp** which an EventEmitter object.
+This function returns an **antisocialApp** object which an EventEmitter.
+
+## User Endpoints
+
+The URL form of the endpoints confirm to the collowing conventions:
+
+`api-prefix` is the location where antisocial-friends is mounted defined in config
+
+`local-username` is a unique username for the local user
+
+Endpoints are URLS that are the base address of a user on an antisocial aware server.
+
+'https://some.antisocial.server/api-prefix/local-username'
+
+### On the requestor's server
+
+#### make a friend request
+```
+GET /api-prefix/local-username/request-friend
+  Query params:
+    endpoint: endpoint url of friend to connect with
+    invite: an invite token if this is in response to an invitation from the user
+```
+
+#### cancel a pending friend request
+```
+POST /api-prefix/local-username/request-friend-cancel
+  Request Body: (application/x-www-form-urlencoded)
+    endpoint: endpoint of the pending request
+```
+
+### On the requestee's server
+
+#### accept a pending friend request
+```
+/api-prefix/local-username/friend-request-accept
+  Request Body: (application/x-www-form-urlencoded)
+    endpoint: endpoint of the pending request
+```
+
+#### decline a pending friend request
+```
+/api-prefix/local-username/friend-request-decline
+  Request Body: (application/x-www-form-urlencoded)
+    endpoint: endpoint of the pending request
+```
+
+### either side can update or delete the relationship once accepted
+```
+POST /api-prefix/local-username/friend-update
+  Request Body: (application/x-www-form-urlencoded)
+    endpoint: endpoint of the friend
+    status: 'delete'|'block'
+    audiences: array of audiences for the friend eg. ["public","friends","some custom audience"]
+```
+
+## socket.io feeds
+
+Accepted friends establish socket.io connections to update eachother about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by events received by the application.
 
 ## Events
 You can handle the following events as needed. For example, to notify user about a friend request, start watching feeds etc.
@@ -483,3 +539,8 @@ Michael's Browser         Michael's server           Alan's server            Al
                                                     RESPONSE --------------->
                                                     { 'status':'ok' }
 ```
+
+
+Copyright Michael Rhodes. 2017,2018. All Rights Reserved.
+This file is licensed under the MIT License.
+License text available at https://opensource.org/licenses/MIT

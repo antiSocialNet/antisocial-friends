@@ -1,5 +1,9 @@
+// Copyright Michael Rhodes. 2017,2018. All Rights Reserved.
+// This file is licensed under the MIT License.
+// License text available at https://opensource.org/licenses/MIT
+
 /*
-	mount websockets listener for incoming activity connections (server to server friends)
+	mount socket.io listener for incoming activity connections (server to server friends)
 */
 
 var debug = require('debug')('antisocial-friends');
@@ -9,7 +13,7 @@ var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
 var cryptography = require('antisocial-encryption');
 
-module.exports = function websocketsActivityMount(antisocialApp, expressListener) {
+module.exports = function activityFeedMount(antisocialApp, expressListener) {
 	var config = antisocialApp.config;
 	var db = antisocialApp.db;
 	var authUserMiddleware = antisocialApp.authUserMiddleware;
@@ -43,7 +47,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 	IOAuth(antisocialApp.ioActivity, {
 		'timeout': 60000,
 		'authenticate': function (socket, data, callback) {
-			debug('websocketsActivityMount authenticate');
+			debug('activityFeedMount authenticate');
 
 			if (!data.friendAccessToken) {
 				callback(new VError('friendAccessToken not supplied'), false);
@@ -117,7 +121,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 				}
 			};
 
-			debug('websocketsActivityMount connection established %s', socket.antisocial.key);
+			debug('activityFeedMount connection established %s', socket.antisocial.key);
 
 			antisocialApp.openActivityListeners[socket.antisocial.key] = socket;
 
@@ -146,7 +150,7 @@ module.exports = function websocketsActivityMount(antisocialApp, expressListener
 			});
 
 			socket.on('disconnect', function (reason) {
-				debug('websocketsActivityMount disconnect %s %s', socket.antisocial.key, reason);
+				debug('activityFeedMount disconnect %s %s', socket.antisocial.key, reason);
 				antisocialApp.emit('close-activity-connection', {
 					'info': socket.antisocial,
 					'reason': reason

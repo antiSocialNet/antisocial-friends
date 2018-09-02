@@ -1,6 +1,6 @@
 {
   "name": "antisocial-friends",
-  "version": "0.0.19",
+  "version": "0.1.0",
   "main": "index.js",
   "scripts": {
     "test": "mocha tests/friend-protocol.js"

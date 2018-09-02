@@ -1,3 +1,7 @@
+// Copyright Michael Rhodes. 2017,2018. All Rights Reserved.
+// This file is licensed under the MIT License.
+// License text available at https://opensource.org/licenses/MIT
+
 var async = require('async');
 var debug = require('debug')('antisocial-friends');
 var VError = require('verror').VError;

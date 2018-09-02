@@ -1,5 +1,9 @@
+// Copyright Michael Rhodes. 2017,2018. All Rights Reserved.
+// This file is licensed under the MIT License.
+// License text available at https://opensource.org/licenses/MIT
+
 /*
-	mount websockets listener for incoming notifications connections (client)
+	mount socket.io listener for incoming notifications connections (client)
 */
 
 var debug = require('debug')('antisocial-friends');
@@ -7,7 +11,7 @@ var VError = require('verror').VError;
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
 
-module.exports = function websocketsNotificationsMount(antisocialApp, expressListener) {
+module.exports = function notificationsFeedMount(antisocialApp, expressListener) {
 	var config = antisocialApp.config;
 	var db = antisocialApp.db;
 	var authUserMiddleware = antisocialApp.authUserMiddleware;
@@ -38,7 +42,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 	IOAuth(antisocialApp.ioNotifications, {
 		'timeout': 60000,
 		'authenticate': function (socket, data, callback) {
-			debug('websocketsNotificationsMount authenticate');
+			debug('notificationsFeedMount authenticate');
 
 			var cookie = require('cookie');
 			var cookieParser = require('cookie-parser');
@@ -73,7 +77,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 				'highwater': data.highwater || 0,
 			};
 
-			debug('websocketsNotificationsMount connection established %s', socket.antisocial.key);
+			debug('notificationsFeedMount connection established %s', socket.antisocial.key);
 
 			antisocialApp.openNotificationsListeners[socket.antisocial.key] = socket;
 
@@ -90,7 +94,7 @@ module.exports = function websocketsNotificationsMount(antisocialApp, expressLis
 			});
 
 			socket.on('disconnect', function (reason) {
-				debug('websocketsNotificationsMount disconnect %s %s', socket.antisocial.key, reason);
+				debug('notificationsFeedMount disconnect %s %s', socket.antisocial.key, reason);
 				antisocialApp.emit('close-notification-connection', {
 					'info': socket.antisocial,
 					'reason': reason

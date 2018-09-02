@@ -1,3 +1,7 @@
+// Copyright Michael Rhodes. 2017,2018. All Rights Reserved.
+// This file is licensed under the MIT License.
+// License text available at https://opensource.org/licenses/MIT
+
 var express = require('express');
 var events = require('events');
 
@@ -28,8 +32,8 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware, listener)
 	require('./routes/friend-exchange-token')(antisocialApp);
 
 	if (listener) {
-		require('./routes/websockets-activity-mount')(antisocialApp, listener);
-		require('./routes/websockets-notifications-mount')(antisocialApp, listener);
+		require('./routes/activity-feed-mount')(antisocialApp, listener);
+		require('./routes/notifications-feed-mount')(antisocialApp, listener);
 	}
 
 	if (config.APIPrefix) {

@@ -127,7 +127,7 @@ describe('friends', function () {
 		});
 	});
 
-	it('user1 should be able to connect to user2 websockets activity feed', function (done) {
+	it('user1 should be able to connect to user2 socket.io activity feed', function (done) {
 		app.db.getInstances('users', [{
 			'property': 'username',
 			'value': 'user-one'
@@ -138,7 +138,7 @@ describe('friends', function () {
 				'value': user.id
 			}], function (err, instances) {
 				var friend = instances[0];
-				var subscribe = require('../lib/websockets-activity-subscribe');
+				var subscribe = require('../lib/activity-feed-subscribe');
 				subscribe.connect(app.antisocial, user, friend);
 				setTimeout(function () {
 					done();
@@ -148,7 +148,7 @@ describe('friends', function () {
 	});
 
 	/*
-	it('user1 should be able to connect to user2 websockets activity feed', function (done) {
+	it('user1 should be able to connect to user2 socket.io activity feed', function (done) {
 		app.db.getInstances('users', [{
 			'property': 'username',
 			'value': 'user-one'
