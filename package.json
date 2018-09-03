@@ -1,6 +1,6 @@
 {
   "name": "antisocial-friends",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "index.js",
   "scripts": {
     "test": "mocha tests/friend-protocol.js"
@@ -10,7 +10,7 @@
     "antisocial-encryption": "^1.0.5",
     "async": "^2.6.1",
     "crc": "^3.8.0",
-    "debug": "~2.6.9",
+    "debug": "~3.1.0",
     "express": "~4.16.0",
     "lodash": "^4.17.10",
     "request": "^2.88.0",
