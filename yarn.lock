@@ -22,12 +22,12 @@ ajv@^5.3.0:
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.3.0"
 
-antisocial-encryption@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/antisocial-encryption/-/antisocial-encryption-1.0.5.tgz#451b5ca7dbf6b4215fd15610c530c5864563cd2f"
+antisocial-encryption@^1.0.8:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/antisocial-encryption/-/antisocial-encryption-1.0.8.tgz#608cd18dc174e715eaca25032a281423f54ae8ce"
   dependencies:
     debug "^3.1.0"
-    node-forge "^0.7.5"
+    node-forge "^0.7.6"
     uuid "^3.3.2"
 
 array-flatten@1.1.1:
@@ -550,7 +550,7 @@ negotiator@0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.1.tgz#2b327184e8992101177b28563fb5e7102acd0ca9"
 
-node-forge@^0.7.5:
+node-forge@^0.7.6:
   version "0.7.6"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.7.6.tgz#fdf3b418aee1f94f0ef642cd63486c77ca9724ac"
 
