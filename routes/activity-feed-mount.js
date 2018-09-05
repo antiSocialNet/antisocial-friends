@@ -131,7 +131,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			});
 
 			socket.on('data', function (data) {
-				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data, 'application/json');
+				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
 				if (!decrypted.valid) { // could not validate signature
 					debug('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
 					return;
@@ -139,7 +139,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 				data = decrypted.data;
 
-				if (decrypted.contentType === 'application/json') {
+				if (!decrypted.contentType || decrypted.contentType === 'application/json') {
 					try {
 						data = JSON.parse(decrypted.data);
 					}

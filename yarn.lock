@@ -22,9 +22,9 @@ ajv@^5.3.0:
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.3.0"
 
-antisocial-encryption@^1.0.8:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/antisocial-encryption/-/antisocial-encryption-1.0.8.tgz#608cd18dc174e715eaca25032a281423f54ae8ce"
+antisocial-encryption@^1.0.9:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/antisocial-encryption/-/antisocial-encryption-1.0.9.tgz#bb6e743098a3ae2ce2e6f5aff85f51073c498840"
   dependencies:
     debug "^3.1.0"
     node-forge "^0.7.6"
