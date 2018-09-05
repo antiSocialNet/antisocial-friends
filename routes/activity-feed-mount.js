@@ -131,17 +131,21 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			});
 
 			socket.on('data', function (data) {
-				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data, 'application/json');
 				if (!decrypted.valid) { // could not validate signature
 					debug('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
 					return;
 				}
 
-				try {
-					data = JSON.parse(decrypted.data);
-				}
-				catch (e) {
-					data = decrypted.data;
+				data = decrypted.data;
+
+				if (decrypted.contentType === 'application/json') {
+					try {
+						data = JSON.parse(decrypted.data);
+					}
+					catch (e) {
+						data = '';
+					}
 				}
 
 				if (socket.antisocial.dataHandler) {
