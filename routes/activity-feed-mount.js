@@ -6,7 +6,7 @@
 	mount socket.io listener for incoming activity connections (server to server friends)
 */
 
-var debug = require('debug')('antisocial-friends');
+var debug = require('debug')('antisocial-friends-feeds');
 var VError = require('verror').VError;
 var async = require('async');
 var IO = require('socket.io');
