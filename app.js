@@ -175,12 +175,25 @@ function setupAntisocialEvents(antisocialApp) {
     e.socket.emit('data', message);
   });
 
+  antisocialApp.on('activity-backfill', function (e) {
+    var user = e.info.user;
+    var friend = e.info.friend;
+    var socket = e.socket;
+    var highwater = e.highwater;
+    console.log('antisocial activity-backfill user %s friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
+  });
+
   antisocialApp.on('close-activity-connection', function (e) {
     console.log('antisocial new-activity-connection %j', e.info.key);
   });
 
   antisocialApp.on('open-notification-connection', function (e) {
     console.log('antisocial new-notification-connection %j', e.info.key);
+
+    socket.antisocial.setDataHandler(function (data) {
+      console.log('antisocial notification-data from %s to %s %j', e.info.user.name, data);
+    });
+
     e.socket.emit('data', {
       'hello': 'world'
     });
@@ -188,6 +201,13 @@ function setupAntisocialEvents(antisocialApp) {
 
   antisocialApp.on('close-notification-connection', function (e) {
     console.log('antisocial new-notification-connection %j', e.info.key);
+  });
+
+  antisocialApp.on('notification-backfill', function (e) {
+    var user = e.info.user;
+    var socket = e.socket;
+    var highwater = e.highwater;
+    console.log('antisocial notification-backfill user %s requesting backfill since %s', user.username, highwater);
   });
 }
 

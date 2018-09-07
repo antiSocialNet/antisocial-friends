@@ -6,12 +6,13 @@
 	mount socket.io listener for incoming activity connections (server to server friends)
 */
 
-var debug = require('debug')('antisocial-friends-feeds');
+var debug = require('debug')('antisocial-friends-activity');
 var VError = require('verror').VError;
 var async = require('async');
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
 var cryptography = require('antisocial-encryption');
+var moment = require('moment');
 
 module.exports = function activityFeedMount(antisocialApp, expressListener) {
 	var config = antisocialApp.config;
@@ -28,16 +29,14 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 		'path': '/antisocial-activity'
 	});
 
-	antisocialApp.ioActivity.on('connect', function (e) {
-		debug('/antisocial-activity connect');
-	});
-
-	antisocialApp.ioActivity.on('disconnect', function (e) {
-		debug('/antisocial-activity disconnect', e);
-	});
-
-	antisocialApp.ioActivity.on('error', function (e) {
-		debug('/antisocial-activity error', e);
+	antisocialApp.ioActivity.on('connect', function (soc) {
+		debug('got connect', soc.id);
+		soc.on('disconnect', function (e) {
+			debug('got disconnect %s %s', soc.id, e);
+		});
+		soc.on('error', function (e) {
+			debug('got error %s %s', soc.id, e);
+		});
 	});
 
 	// friend activity feed
@@ -47,7 +46,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 	IOAuth(antisocialApp.ioActivity, {
 		'timeout': 60000,
 		'authenticate': function (socket, data, callback) {
-			debug('activityFeedMount authenticate');
+			debug('authenticate %s', socket.id);
 
 			if (!data.friendAccessToken) {
 				callback(new VError('friendAccessToken not supplied'), false);
@@ -100,6 +99,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				}
 			], function (err, user, friend) {
 				if (err) {
+					debug('authenticate error %s', err.message);
 					return callback(err);
 				}
 				if (friend.status !== 'accepted') {
@@ -111,17 +111,18 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			});
 		},
 		'postAuthenticate': function (socket, data) {
+			debug('postAuthenticate %s', socket.id);
+
 			socket.antisocial = {
 				'friend': data.friend,
 				'user': data.user,
-				'highwater': data.friendHighWater || 0,
 				'key': data.user.username + '<-' + data.friend.remoteEndPoint,
 				'setDataHandler': function setDataHandler(handler) {
 					socket.antisocial.dataHandler = handler;
 				}
 			};
 
-			debug('activityFeedMount connection established %s', socket.antisocial.key);
+			debug('connection established %s %s', socket.id, socket.antisocial.key);
 
 			antisocialApp.openActivityListeners[socket.antisocial.key] = socket;
 
@@ -130,10 +131,21 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				'socket': socket
 			});
 
+			socket.on('highwater', function (highwater) {
+				debug('got highwater from %s %s', socket.id, socket.antisocial.key, highwater);
+				antisocialApp.emit('activity-backfill', {
+					'info': socket.antisocial,
+					'socket': socket,
+					'highwater': highwater
+				});
+			});
+
 			socket.on('data', function (data) {
+				debug('got data from %s %s', socket.id, socket.antisocial.key);
+
 				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
 				if (!decrypted.valid) { // could not validate signature
-					debug('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
+					debug('decryption signature validation error:', decrypted.invalidReason);
 					return;
 				}
 
@@ -151,10 +163,13 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				if (socket.antisocial.dataHandler) {
 					socket.antisocial.dataHandler(data);
 				}
+				else {
+					debug('no data handler for %s', socket.antisocial.key);
+				}
 			});
 
 			socket.on('disconnect', function (reason) {
-				debug('activityFeedMount disconnect %s %s', socket.antisocial.key, reason);
+				debug('got disconnect %s %s %s', socket.id, socket.antisocial.key, reason);
 				antisocialApp.emit('close-activity-connection', {
 					'info': socket.antisocial,
 					'reason': reason
@@ -164,6 +179,8 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				});
 				delete antisocialApp.openActivityListeners[socket.antisocial.key];
 			});
+
+			socket.emit('highwater', socket.antisocial.friend.highWater ? socket.antisocial.friend.highWater : moment().subtract(7, 'd').toISOString());
 
 			db.updateInstance('friends', socket.antisocial.friend.id, {
 				'online': true

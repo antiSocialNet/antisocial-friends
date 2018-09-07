@@ -150,6 +150,18 @@ antisocialApp.on('open-activity-connection', function (e) {
 });
 ```
 
+### activity-backfill event. a friend is requesting updates that have occurred since they last connected
+Would typically used to emit 'data' events on the socket or each applicable activity that happened after the date specified in highwater.
+```
+antisocialApp.on('activity-backfill', function (e) {
+  var user = e.info.user;
+  var friend = e.info.friend;
+  var highwater = e.highwater;
+  var socket = e.socket;
+  console.log('antisocial activity-backfill user %s of friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
+});
+```
+
 ### close-activity-connection: activity feed closed.
 Typically used to clean up any event handlers set up in open-activity-connection.
 ```
@@ -163,8 +175,23 @@ Hook to allow app to set up a data handler for messages received on this socket.
 ```
 antisocialApp.on('open-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
+  socket.antisocial.setDataHandler(function (data) {
+    console.log('antisocial notification-data from %s to %s %j', e.info.user.name, data);
+  });
 });
 ```
+
+### notification-backfill event. A user is requesting updates that have occurred since they last connected
+Would typically used to emit 'data' events on the socket or each applicable notifications that happened after the date specified in highwater.
+```
+antisocialApp.on('notification-backfill', function (e) {
+  var user = e.info.user;
+  var socket = e.socket;
+  var highwater = e.highwater;
+  console.log('antisocial notification-backfill user %s requesting backfill since %s', user.username, highwater);
+});
+```
+
 
 ### close-notification-connection event
 ```
@@ -172,6 +199,7 @@ antisocialApp.on('close-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
 });
 ```
+
 
 ## The data structures maintained by these protocols
 This app uses the following data collections:

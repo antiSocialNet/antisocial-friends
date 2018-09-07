@@ -6,7 +6,7 @@
 	mount socket.io listener for incoming notifications connections (client)
 */
 
-var debug = require('debug')('antisocial-friends-feeds');
+var debug = require('debug')('antisocial-friends-notifications');
 var VError = require('verror').VError;
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
@@ -25,17 +25,17 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 		'path': '/antisocial-notifications'
 	});
 
-	antisocialApp.ioNotifications.on('connect', function (e) {
-		debug('/antisocial-notifications connect');
+	antisocialApp.ioNotifications.on('connect', function (soc) {
+		debug('/antisocial-notifications connect %s', soc.id);
+		soc.on('disconnect', function (e) {
+			debug('/antisocial-notifications disconnect %s %s', soc.id, e);
+		});
+		soc.on('error', function (e) {
+			debug('/antisocial-notifications error %s %s', soc.id, e);
+		});
 	});
 
-	antisocialApp.ioNotifications.on('disconnect', function (e) {
-		debug('/antisocial-notifications disconnect', e);
-	});
 
-	antisocialApp.ioNotifications.on('error', function (e) {
-		debug('/antisocial-notifications error', e);
-	});
 
 	// user notification feed
 	// authenticate with access_token cookie
@@ -74,7 +74,9 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 			socket.antisocial = {
 				'user': data.currentUser,
 				'key': data.currentUser.username,
-				'highwater': data.highwater || 0,
+				'setDataHandler': function setDataHandler(handler) {
+					socket.antisocial.dataHandler = handler;
+				}
 			};
 
 			debug('notificationsFeedMount connection established %s', socket.antisocial.key);
@@ -86,15 +88,27 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 				'socket': socket
 			});
 
-			socket.on('data', function (data) {
-				antisocialApp.emit('notification-data', {
+			socket.on('highwater', function (highwater) {
+				debug('got highwater from %s %s', socket.antisocial.key, highwater);
+				antisocialApp.emit('notification-backfill', {
 					'info': socket.antisocial,
-					'data': data
+					'socket': socket,
+					'highwater': highwater
 				});
 			});
 
+			socket.on('data', function (data) {
+				debug('got data from %s', socket.antisocial.key);
+				if (socket.antisocial.dataHandler) {
+					socket.antisocial.dataHandler(data);
+				}
+				else {
+					debug('no data handler for %s', socket.antisocial.key);
+				}
+			});
+
 			socket.on('disconnect', function (reason) {
-				debug('notificationsFeedMount disconnect %s %s', socket.antisocial.key, reason);
+				debug('got disconnect %s %s', socket.antisocial.key, reason);
 				antisocialApp.emit('close-notification-connection', {
 					'info': socket.antisocial,
 					'reason': reason
