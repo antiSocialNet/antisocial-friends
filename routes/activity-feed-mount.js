@@ -115,6 +115,8 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					return callback(new VError(err, 'already connected ' + key), false);
 				}
 
+				antisocialApp.openActivityListeners[key] = socket;
+
 				callback(null, true);
 			});
 		},
@@ -131,8 +133,6 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			};
 
 			debug('connection established %s %s', socket.id, socket.antisocial.key);
-
-			antisocialApp.openActivityListeners[socket.antisocial.key] = socket;
 
 			antisocialApp.emit('open-activity-connection', {
 				'info': socket.antisocial,

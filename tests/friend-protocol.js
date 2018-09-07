@@ -40,7 +40,9 @@ describe('friends', function () {
 		//console.log('invitations: %j', app.db.collections.invitations);
 		//console.log('friends: %j', app.db.collections.friends);
 		//console.log('blocks: %j', app.db.collections.blocks);
-		app.stop();
+		setTimeout(function () {
+			app.stop();
+		}, 5000);
 	});
 
 	it('should be able to create account 1', function (done) {
@@ -319,9 +321,25 @@ describe('friends', function () {
 				var friend = instances[0];
 				var subscribe = require('../lib/activity-feed-subscribe');
 				subscribe.connect(app.antisocial, user, friend);
-				setTimeout(function () {
-					done();
-				}, 5000);
+				done();
+			});
+		});
+	});
+
+	it('user1 should not be able to connect to user2 socket.io activity feed again', function (done) {
+		app.db.getInstances('users', [{
+			'property': 'username',
+			'value': 'user-one'
+		}], function (err, instances) {
+			var user = instances[0];
+			app.db.getInstances('friends', [{
+				'property': 'userId',
+				'value': user.id
+			}], function (err, instances) {
+				var friend = instances[0];
+				var subscribe = require('../lib/activity-feed-subscribe');
+				subscribe.connect(app.antisocial, user, friend);
+				done();
 			});
 		});
 	});
