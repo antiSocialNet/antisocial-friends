@@ -6,7 +6,7 @@
 	mount socket.io listener for incoming activity connections (server to server friends)
 */
 
-var debug = require('debug')('antisocial-friends-activity');
+var debug = require('debug')('antisocial-friends:activity');
 var VError = require('verror').VError;
 var async = require('async');
 var IO = require('socket.io');
@@ -107,6 +107,14 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				}
 				data.friend = friend;
 				data.user = user;
+
+				var key = data.user.username + '<-' + data.friend.remoteEndPoin;
+
+				if (antisocialApp.openActivityListeners[key]) {
+					debug('activityFeedSubscribeConnect abort already connected %s', key);
+					return callback(new VError(err, 'already connected ' + key), false);
+				}
+
 				callback(null, true);
 			});
 		},

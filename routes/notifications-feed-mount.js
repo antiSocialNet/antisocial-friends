@@ -6,7 +6,7 @@
 	mount socket.io listener for incoming notifications connections (client)
 */
 
-var debug = require('debug')('antisocial-friends-notifications');
+var debug = require('debug')('antisocial-friends:notifications');
 var VError = require('verror').VError;
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
