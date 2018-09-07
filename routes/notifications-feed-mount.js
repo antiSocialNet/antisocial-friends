@@ -26,7 +26,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 	});
 
 	antisocialApp.ioNotifications.on('connect', function (soc) {
-		debug('/antisocial-notifications connect %s', soc.id);
+		debug('/antisocial-notifications connect', soc.id);
 		soc.on('disconnect', function (e) {
 			debug('/antisocial-notifications disconnect %s %s', soc.id, e);
 		});

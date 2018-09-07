@@ -30,12 +30,12 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 	});
 
 	antisocialApp.ioActivity.on('connect', function (soc) {
-		debug('got connect', soc.id);
+		debug('%s /antisocial-activity connect', soc.id);
 		soc.on('disconnect', function (e) {
-			debug('got disconnect %s %s', soc.id, e);
+			debug('%s /antisocial-activity disconnect %s', soc.id, e);
 		});
 		soc.on('error', function (e) {
-			debug('got error %s %s', soc.id, e);
+			debug('%s /antisocial-activity error %s', soc.id, e);
 		});
 	});
 
@@ -46,7 +46,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 	IOAuth(antisocialApp.ioActivity, {
 		'timeout': 60000,
 		'authenticate': function (socket, data, callback) {
-			debug('authenticate %s', socket.id);
+			debug('%s /antisocial-activity authenticate', socket.id);
 
 			if (!data.friendAccessToken) {
 				callback(new VError('friendAccessToken not supplied'), false);
@@ -99,7 +99,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				}
 			], function (err, user, friend) {
 				if (err) {
-					debug('authenticate error %s', err.message);
+					debug('%s /antisocial-activity authenticate error %s', socket.id, err.message);
 					return callback(err);
 				}
 				if (friend.status !== 'accepted') {
@@ -111,7 +111,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				var key = data.user.username + '<-' + data.friend.remoteEndPoint;
 
 				if (antisocialApp.openActivityListeners[key]) {
-					debug('activityFeedSubscribeConnect abort already connected %s', key);
+					debug('%s /antisocial-activity abort already connected %s', socket.id, key);
 					return callback(new VError(err, 'already connected ' + key), false);
 				}
 
@@ -121,7 +121,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			});
 		},
 		'postAuthenticate': function (socket, data) {
-			debug('postAuthenticate %s', socket.id);
+			debug('%s /antisocial-activity postAuthenticate', socket.id);
 
 			socket.antisocial = {
 				'friend': data.friend,
@@ -132,7 +132,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				}
 			};
 
-			debug('connection established %s %s', socket.id, socket.antisocial.key);
+			debug('%s /antisocial-activity connection established %s', socket.id, socket.antisocial.key);
 
 			antisocialApp.emit('open-activity-connection', {
 				'info': socket.antisocial,
@@ -140,7 +140,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			});
 
 			socket.on('highwater', function (highwater) {
-				debug('got highwater from %s %s', socket.id, socket.antisocial.key, highwater);
+				debug('%s /antisocial-activity highwater from %s', socket.id, socket.antisocial.key, highwater);
 				antisocialApp.emit('activity-backfill', {
 					'info': socket.antisocial,
 					'socket': socket,
@@ -149,7 +149,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			});
 
 			socket.on('data', function (data) {
-				debug('got data from %s %s', socket.id, socket.antisocial.key);
+				debug('%s /antisocial-activity data from %s', socket.id, socket.antisocial.key);
 
 				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
 				if (!decrypted.valid) { // could not validate signature
@@ -172,12 +172,12 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					socket.antisocial.dataHandler(data);
 				}
 				else {
-					debug('no data handler for %s', socket.antisocial.key);
+					debug('%s /antisocial-activity no data handler for %s', socket.id, socket.antisocial.key);
 				}
 			});
 
 			socket.on('disconnect', function (reason) {
-				debug('got disconnect %s %s %s', socket.id, socket.antisocial.key, reason);
+				debug('%s /antisocial-activity disconnect %s %s', socket.id, socket.antisocial.key, reason);
 				antisocialApp.emit('close-activity-connection', {
 					'info': socket.antisocial,
 					'reason': reason

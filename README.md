@@ -98,6 +98,13 @@ POST /api-prefix/local-username/friend-update
 
 Accepted friends establish socket.io connections to update eachother about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by events received by the application.
 
+### establish activity feed connection
+Once connected this will emit an 'open-notification-connection' event on the antisocalApp  so the host application can set up its protocol for exchanging messages.
+```
+var subscribe = require('../lib/activity-feed-subscribe')(antisocalApp);
+subscribe.connect(user, friend);
+```
+
 ## Events
 You can handle the following events as needed. For example, to notify user about a friend request, start watching feeds etc.
 
@@ -199,6 +206,7 @@ antisocialApp.on('close-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
 });
 ```
+
 
 
 ## The data structures maintained by these protocols
