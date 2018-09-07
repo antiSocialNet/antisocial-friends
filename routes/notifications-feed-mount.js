@@ -76,6 +76,9 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 				'key': data.currentUser.username,
 				'setDataHandler': function setDataHandler(handler) {
 					socket.antisocial.dataHandler = handler;
+				},
+				'setBackfillHandler': function setBackfillHandler(handler) {
+					socket.antisocial.backfillHandler = handler;
 				}
 			};
 

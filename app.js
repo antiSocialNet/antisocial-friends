@@ -166,6 +166,14 @@ function setupAntisocialEvents(antisocialApp) {
       console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
     });
 
+    // set up backfill handler to transmit activity since last connection
+    socket.antisocial.setBackfillHandler(function (e) {
+      var user = e.info.user;
+      var friend = e.info.friend;
+      var highwater = e.highwater;
+      console.log('antisocial backfill user %s friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
+    });
+
     var data = JSON.stringify({
       'hello': friend.remoteName
     });
@@ -175,13 +183,6 @@ function setupAntisocialEvents(antisocialApp) {
     e.socket.emit('data', message);
   });
 
-  antisocialApp.on('activity-backfill', function (e) {
-    var user = e.info.user;
-    var friend = e.info.friend;
-    var socket = e.socket;
-    var highwater = e.highwater;
-    console.log('antisocial activity-backfill user %s friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
-  });
 
   antisocialApp.on('close-activity-connection', function (e) {
     console.log('antisocial new-activity-connection %j', e.info.key);

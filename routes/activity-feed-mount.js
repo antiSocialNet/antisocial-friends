@@ -129,6 +129,9 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				'key': data.user.username + '<-' + data.friend.remoteEndPoint,
 				'setDataHandler': function setDataHandler(handler) {
 					socket.antisocial.dataHandler = handler;
+				},
+				'setBackfillHandler': function setBackfillHandler(handler) {
+					socket.antisocial.backfillHandler = handler;
 				}
 			};
 
@@ -141,11 +144,12 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 			socket.on('highwater', function (highwater) {
 				debug('%s /antisocial-activity highwater from %s', socket.id, socket.antisocial.key, highwater);
-				antisocialApp.emit('activity-backfill', {
-					'info': socket.antisocial,
-					'socket': socket,
-					'highwater': highwater
-				});
+				if (socket.antisocial.backfillHandler) {
+					socket.antisocial.backfillHandler({
+						'info': socket.antisocial,
+						'highwater': highwater
+					});
+				}
 			});
 
 			socket.on('data', function (data) {

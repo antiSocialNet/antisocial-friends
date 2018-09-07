@@ -21,6 +21,7 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware, listener)
 	antisocialApp.config = config;
 	antisocialApp.db = dbAdaptor;
 	antisocialApp.authUserMiddleware = authUserMiddleware;
+	antisocialApp.activityFeed = require('./lib/activity-feed-subscribe')(antisocialApp);
 
 	require('./routes/request-friend-cancel')(antisocialApp);
 	require('./routes/request-friend')(antisocialApp);

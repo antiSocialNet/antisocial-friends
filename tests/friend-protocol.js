@@ -322,11 +322,10 @@ describe('friends', function () {
 				'value': user.id
 			}], function (err, instances) {
 				friend = instances[0];
-				var subscribe = require('../lib/activity-feed-subscribe')(app.antisocial);
-				subscribe.connect(user, friend);
+				app.antisocial.activityFeed.connect(user, friend);
 				// wait 5 seconds then disconnect
 				setTimeout(function () {
-					subscribe.disconnect(user, friend);
+					app.antisocial.activityFeed.disconnect(user, friend);
 				}, 5000);
 				done();
 			});
@@ -344,8 +343,7 @@ describe('friends', function () {
 				'value': user.id
 			}], function (err, instances) {
 				var friend = instances[0];
-				var subscribe = require('../lib/activity-feed-subscribe')(app.antisocial);
-				subscribe.connect(user, friend);
+				app.antisocial.activityFeed.connect(user, friend);
 
 				//wait 10 seconds
 				setTimeout(function () {

@@ -98,12 +98,6 @@ POST /api-prefix/local-username/friend-update
 
 Accepted friends establish socket.io connections to update eachother about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by events received by the application.
 
-### establish activity feed connection
-Once connected this will emit an 'open-notification-connection' event on the antisocalApp  so the host application can set up its protocol for exchanging messages.
-```
-var subscribe = require('../lib/activity-feed-subscribe')(antisocalApp);
-subscribe.connect(user, friend);
-```
 
 ## Events
 You can handle the following events as needed. For example, to notify user about a friend request, start watching feeds etc.
@@ -154,18 +148,15 @@ antisocialApp.on('open-activity-connection', function (e) {
   socket.antisocial.setDataHandler(function (data) {
     console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
   });
-});
-```
 
-### activity-backfill event. a friend is requesting updates that have occurred since they last connected
-Would typically used to emit 'data' events on the socket or each applicable activity that happened after the date specified in highwater.
-```
-antisocialApp.on('activity-backfill', function (e) {
-  var user = e.info.user;
-  var friend = e.info.friend;
-  var highwater = e.highwater;
-  var socket = e.socket;
-  console.log('antisocial activity-backfill user %s of friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
+  // set up backfill handler to transmit activity since last connection
+  socket.antisocial.setBackfillHandler(function (e) {
+    var user = e.info.user;
+    var friend = e.info.friend;
+    var highwater = e.highwater;
+    console.log('antisocial activity-backfill user %s friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
+  });
+  
 });
 ```
 
@@ -205,6 +196,12 @@ antisocialApp.on('notification-backfill', function (e) {
 antisocialApp.on('close-notification-connection', function (e) {
   console.log('antisocial new-notification-connection %j', e.info.key);
 });
+```
+
+#### establish activity feed connection
+Once connected this will emit an 'open-notification-connection' event on the antisocalApp  so the host application can set up its protocol for exchanging messages.
+```
+antisocialApp.activityFeed.connect(user, friend);
 ```
 
 
