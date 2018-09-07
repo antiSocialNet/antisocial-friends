@@ -108,7 +108,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 				data.friend = friend;
 				data.user = user;
 
-				var key = data.user.username + '<-' + data.friend.remoteEndPoin;
+				var key = data.user.username + '<-' + data.friend.remoteEndPoint;
 
 				if (antisocialApp.openActivityListeners[key]) {
 					debug('activityFeedSubscribeConnect abort already connected %s', key);
