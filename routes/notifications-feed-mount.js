@@ -93,15 +93,36 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			socket.on('highwater', function (highwater) {
 				debug('got highwater from %s %s', socket.antisocial.key, highwater);
-				antisocialApp.emit('notification-backfill', {
-					'info': socket.antisocial,
-					'socket': socket,
-					'highwater': highwater
-				});
+				if (socket.antisocial.backfillHandler) {
+					socket.antisocial.backfillHandler({
+						'info': socket.antisocial,
+						'socket': socket,
+						'highwater': highwater
+					});
+				}
 			});
 
-			socket.on('data', function (data) {
-				debug('got data from %s', socket.antisocial.key);
+			socket.on('data', function (message) {
+				debug('got data from %s', socket.antisocial.key, message);
+
+				try {
+					message = JSON.parse(message);
+				}
+				catch (e) {
+					debug('unable to parse JSON message');
+				}
+
+				var data = message.data;
+
+				if (!message.contentType || message.contentType === 'application/json') {
+					try {
+						data = JSON.parse(message.data);
+					}
+					catch (e) {
+						debug('unable to parse JSON data');
+					}
+				}
+
 				if (socket.antisocial.dataHandler) {
 					socket.antisocial.dataHandler(data);
 				}
