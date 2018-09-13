@@ -5,8 +5,6 @@
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var uuid = require('uuid');
-var cryptography = require('antisocial-encryption');
-
 
 var app = express();
 
@@ -22,8 +20,7 @@ var antisocial = require('./index');
 
 
 // Example database adaptor for persistant storage of users and friends
-// adapt these abstract methods to your application
-// data storage scheme
+// adapt these abstract methods to your application data storage scheme
 
 function dbHandler() {
   var self = this;
@@ -79,6 +76,9 @@ function dbHandler() {
   // update item properties by id
   this.updateInstance = function (collectionName, id, patch, cb) {
     var item = self.collections[collectionName][id];
+    if (!item) {
+      cb('not found', null);
+    }
     for (var prop in patch) {
       if (patch.hasOwnProperty(prop)) {
         item[prop] = patch[prop];
@@ -93,6 +93,10 @@ function dbHandler() {
   };
 
   this.deleteInstance = function (collectionName, id, cb) {
+    var item = self.collections[collectionName][id];
+    if (!item) {
+      cb('not found', null);
+    }
     delete self.collections[collectionName][id];
     if (cb) {
       cb(null);
@@ -189,15 +193,11 @@ app.start = function (port) {
   });
 
   antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {
-
     console.log('antisocial open-activity-connection %j', info.key);
-
-    var data = JSON.stringify({
-      'app': 'posts',
+    emitter('post', 'highwater', 100);
+    emitter('post', 'data', {
       'hello': friend.remoteName
     });
-
-    emitter(data);
   });
 
   antisocialApp.on('close-activity-connection', function (e) {
@@ -206,9 +206,8 @@ app.start = function (port) {
 
   antisocialApp.on('open-notification-connection', function (user, emitter, info) {
     console.log('antisocial open-notification-connection %j', info.key);
-
-    emitter({
-      'hello': 'world'
+    emitter('post', 'data', {
+      'hello': user.username
     });
   });
 
@@ -216,36 +215,26 @@ app.start = function (port) {
     console.log('antisocial close-notification-connection %j', e.info.key);
   });
 
-  // set up a behavior call 'post' which handles
-  // socket.io notifications and activity data and backfill events
-  antisocialApp.addBehavior('post', {
-    'id': 'post',
-    'activityDataHandlerFactory': function (user, friend) {
-      return function (data) {
-        console.log('antisocial activity-data user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
-      };
-    },
-    'activityBackfillHandlerFactory': function (user, friend) {
-      return function (highwater, emitter) {
-        console.log('antisocial activity-backfill user: %s friend: %s highwater: %s', user.username, friend.remoteEndPoint, highwater);
-        emitter({
-          'backfill-echo': highwater
-        });
-      };
-    },
-    'notificationDataHandlerFactory': function (user) {
-      return function (data) {
-        console.log('antisocial notification-data user: %s data: %j', user.name, data);
-      };
-    },
-    'notificationBackfillHandlerFactory': function (user) {
-      return function (highwater, emitter) {
-        console.log('antisocial notification-backfill user: %s highwater: %s', user.username, highwater);
-        emitter({
-          'backfill-echo': highwater
-        });
-      };
-    }
+  antisocialApp.on('activity-data-post', function (user, friend, data) {
+    console.log('activity-data-post user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+  });
+
+  antisocialApp.on('activity-backfill-post', function (user, friend, highwater, emitter) {
+    console.log('activity-backfill-post user: %s friend: %s highwater: %s', user.name, friend.remoteEndPoint, highwater);
+    emitter('post', 'data', {
+      'activity-backfill-echo': highwater
+    });
+  });
+
+  antisocialApp.on('notification-data-post', function (user, data) {
+    console.log('notification-data-post user: %s data: %j', user.name, data);
+  });
+
+  antisocialApp.on('notification-backfill-post', function (user, highwater, emitter) {
+    console.log('notification-backfill-post user: %s backfill: %j', highwater);
+    emitter('post', 'data', {
+      'notification-backfill-echo': highwater
+    });
   });
 
   antisocialApp.listen(listener);

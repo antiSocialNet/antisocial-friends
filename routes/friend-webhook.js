@@ -90,6 +90,8 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 							}
 						});
 
+						antisocialApp.activityFeed.connect(user, friend);
+
 						cb(null, friend);
 					});
 				}
@@ -113,14 +115,26 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 						}
 					});
 
-					db.deleteInstance('friends', friend.id, function (err, friend) {
-						if (err) {
-							var e = new VError(err, '/friend-webhook friend-request-declined error');
-							return cb(e);
-						}
-
-						cb(null);
-					});
+					if (req.body.action === 'friend-delete') {
+						antisocialApp.activityFeed.disconnect(user, friend, function (err) {
+							db.deleteInstance('friends', friend.id, function (err) {
+								if (err) {
+									var e = new VError(err, '/friend-webhook ' + req.body.action + ' error');
+									return cb(e);
+								}
+								cb(null);
+							});
+						});
+					}
+					else {
+						db.deleteInstance('friends', friend.id, function (err) {
+							if (err) {
+								var e = new VError(err, '/friend-webhook ' + req.body.action + ' error');
+								return cb(e);
+							}
+							cb(null);
+						});
+					}
 				}
 				else {
 					return cb(new VError('unknown webhook action'));

@@ -35,13 +35,14 @@ describe('friends', function () {
 		done();
 	});
 
-	after(function () {
+	after(function (done) {
 		//console.log('users: %j', app.db.collections.users);
 		//console.log('invitations: %j', app.db.collections.invitations);
 		//console.log('friends: %j', app.db.collections.friends);
 		//console.log('blocks: %j', app.db.collections.blocks);
 		setTimeout(function () {
 			app.stop();
+			done();
 		}, 5000);
 	});
 
@@ -308,6 +309,8 @@ describe('friends', function () {
 			});
 	});
 
+	/*
+
 	var friend;
 	var user;
 
@@ -352,6 +355,8 @@ describe('friends', function () {
 			});
 		});
 	});
+
+	*/
 
 });
 

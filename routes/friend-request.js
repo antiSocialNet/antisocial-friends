@@ -281,6 +281,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 							'user': user
 						}
 					});
+					antisocialApp.activityFeed.connect(user, friend);
 				}
 				else {
 					antisocialApp.emit('new-friend-request', {

@@ -10,13 +10,11 @@ var debug = require('debug')('antisocial-friends:notifications');
 var VError = require('verror').VError;
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
-var cryptography = require('antisocial-encryption');
 
 module.exports = function notificationsFeedMount(antisocialApp, expressListener) {
 	var config = antisocialApp.config;
 	var db = antisocialApp.db;
 	var authUserMiddleware = antisocialApp.authUserMiddleware;
-
 
 	if (!antisocialApp.openNotificationsListeners) {
 		antisocialApp.openNotificationsListeners = {};
@@ -81,27 +79,19 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			antisocialApp.openNotificationsListeners[socket.antisocial.key] = socket;
 
-			for (var appid in antisocialApp.behaviors) {
-				var app = antisocialApp.behaviors[appid];
-				if (app.notificationDataHandlerFactory) {
-					socket.antisocial.dataHandler = app.notificationDataHandlerFactory(data.user);
-				}
-				if (app.notificationBackfillHandlerFactory) {
-					socket.antisocial.backfillHandler = app.notificationBackfillHandlerFactory(data.user);
-				}
-			}
-
-			socket.antisocial.emitter = function (data) {
-				socket.emit('data', JSON.stringify(data));
+			socket.antisocial.emitter = function (behavior, eventType, data) {
+				socket.emit(eventType, {
+					'behavior': behavior,
+					'data': data
+				});
 			};
 
 			antisocialApp.emit('open-notification-connection', socket.antisocial.user, socket.antisocial.emitter, socket.antisocial);
 
-			socket.on('highwater', function (highwater) {
+			socket.on('highwater', function (behavior, highwater) {
 				debug('got highwater from %s %s', socket.antisocial.key, highwater);
-				if (socket.antisocial.backfillHandler) {
-					socket.antisocial.backfillHandler(highwater, socket);
-				}
+				var appid = data.behavior;
+				antisocialApp.emit('notification-backfill-' + appid, socket.antisocial.user, highwater, socket.antisocial.dataWrapper);
 			});
 
 			socket.on('data', function (message) {
@@ -125,12 +115,8 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 					}
 				}
 
-				if (socket.antisocial.dataHandler) {
-					socket.antisocial.dataHandler(data);
-				}
-				else {
-					debug('no data handler for %s', socket.antisocial.key);
-				}
+				var appid = data.behavior;
+				antisocialApp.emit('notification-data-' + appid, socket.antisocial.user, data.data);
 			});
 
 			socket.on('disconnect', function (reason) {
