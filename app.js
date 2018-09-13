@@ -137,81 +137,6 @@ function getAuthenticatedUser(req, res, next) {
 
 app.db = db;
 
-function setupAntisocialEvents(antisocialApp) {
-  antisocialApp.on('new-friend-request', function (e) {
-    console.log('antisocial new-friend-request %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('new-friend', function (e) {
-    console.log('antisocial new-friend %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('friend-updated', function (e) {
-    console.log('antisocial friend-updated %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('friend-deleted', function (e) {
-    console.log('antisocial friend-deleted %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('open-activity-connection', function (e) {
-    var friend = e.info.friend;
-    var user = e.info.user;
-    var socket = e.socket;
-
-    console.log('antisocial new-activity-connection %j', e.info.key);
-
-    // set up data handler. will be called whenever data is received on socket
-    socket.antisocial.setDataHandler(function (data) {
-      console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
-    });
-
-    // set up backfill handler to transmit activity since last connection
-    socket.antisocial.setBackfillHandler(function (e) {
-      var user = e.info.user;
-      var friend = e.info.friend;
-      var highwater = e.highwater;
-      console.log('antisocial backfill user %s friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
-    });
-
-    var data = JSON.stringify({
-      'hello': friend.remoteName
-    });
-
-    var message = cryptography.encrypt(friend.remotePublicKey, friend.keys.private, data);
-
-    e.socket.emit('data', message);
-  });
-
-
-  antisocialApp.on('close-activity-connection', function (e) {
-    console.log('antisocial new-activity-connection %j', e.info.key);
-  });
-
-  antisocialApp.on('open-notification-connection', function (e) {
-    console.log('antisocial new-notification-connection %j', e.info.key);
-
-    socket.antisocial.setDataHandler(function (data) {
-      console.log('antisocial notification-data from %s to %s %j', e.info.user.name, data);
-    });
-
-    e.socket.emit('data', {
-      'hello': 'world'
-    });
-  });
-
-  antisocialApp.on('close-notification-connection', function (e) {
-    console.log('antisocial new-notification-connection %j', e.info.key);
-  });
-
-  antisocialApp.on('notification-backfill', function (e) {
-    var user = e.info.user;
-    var socket = e.socket;
-    var highwater = e.highwater;
-    console.log('antisocial notification-backfill user %s requesting backfill since %s', user.username, highwater);
-  });
-}
-
 // user register route for tests
 var router = express.Router();
 router.all('/register', function (req, res) {
@@ -245,9 +170,85 @@ app.start = function (port) {
     'port': 3000
   };
 
-  var antisocialApp = antisocial(app, config, db, getAuthenticatedUser, listener);
+  var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
 
-  setupAntisocialEvents(antisocialApp);
+  antisocialApp.on('new-friend-request', function (e) {
+    console.log('antisocial new-friend-request %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('new-friend', function (e) {
+    console.log('antisocial new-friend %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('friend-updated', function (e) {
+    console.log('antisocial friend-updated %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('friend-deleted', function (e) {
+    console.log('antisocial friend-deleted %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {
+
+    console.log('antisocial open-activity-connection %j', info.key);
+
+    var data = JSON.stringify({
+      'app': 'posts',
+      'hello': friend.remoteName
+    });
+
+    emitter(data);
+  });
+
+  antisocialApp.on('close-activity-connection', function (e) {
+    console.log('antisocial close-activity-connection %j', e.info.key);
+  });
+
+  antisocialApp.on('open-notification-connection', function (user, emitter, info) {
+    console.log('antisocial open-notification-connection %j', info.key);
+
+    emitter({
+      'hello': 'world'
+    });
+  });
+
+  antisocialApp.on('close-notification-connection', function (e) {
+    console.log('antisocial close-notification-connection %j', e.info.key);
+  });
+
+  // set up a behavior call 'post' which handles
+  // socket.io notifications and activity data and backfill events
+  antisocialApp.addBehavior('post', {
+    'id': 'post',
+    'activityDataHandlerFactory': function (user, friend) {
+      return function (data) {
+        console.log('antisocial activity-data user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+      };
+    },
+    'activityBackfillHandlerFactory': function (user, friend) {
+      return function (highwater, emitter) {
+        console.log('antisocial activity-backfill user: %s friend: %s highwater: %s', user.username, friend.remoteEndPoint, highwater);
+        emitter({
+          'backfill-echo': highwater
+        });
+      };
+    },
+    'notificationDataHandlerFactory': function (user) {
+      return function (data) {
+        console.log('antisocial notification-data user: %s data: %j', user.name, data);
+      };
+    },
+    'notificationBackfillHandlerFactory': function (user) {
+      return function (highwater, emitter) {
+        console.log('antisocial notification-backfill user: %s highwater: %s', user.username, highwater);
+        emitter({
+          'backfill-echo': highwater
+        });
+      };
+    }
+  });
+
+  antisocialApp.listen(listener);
 };
 
 app.stop = function () {

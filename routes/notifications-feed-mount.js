@@ -10,6 +10,7 @@ var debug = require('debug')('antisocial-friends:notifications');
 var VError = require('verror').VError;
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
+var cryptography = require('antisocial-encryption');
 
 module.exports = function notificationsFeedMount(antisocialApp, expressListener) {
 	var config = antisocialApp.config;
@@ -73,32 +74,33 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 		'postAuthenticate': function (socket, data) {
 			socket.antisocial = {
 				'user': data.currentUser,
-				'key': data.currentUser.username,
-				'setDataHandler': function setDataHandler(handler) {
-					socket.antisocial.dataHandler = handler;
-				},
-				'setBackfillHandler': function setBackfillHandler(handler) {
-					socket.antisocial.backfillHandler = handler;
-				}
+				'key': data.currentUser.username
 			};
 
 			debug('notificationsFeedMount connection established %s', socket.antisocial.key);
 
 			antisocialApp.openNotificationsListeners[socket.antisocial.key] = socket;
 
-			antisocialApp.emit('open-notification-connection', {
-				'info': socket.antisocial,
-				'socket': socket
-			});
+			for (var appid in antisocialApp.behaviors) {
+				var app = antisocialApp.behaviors[appid];
+				if (app.notificationDataHandlerFactory) {
+					socket.antisocial.dataHandler = app.notificationDataHandlerFactory(data.user);
+				}
+				if (app.notificationBackfillHandlerFactory) {
+					socket.antisocial.backfillHandler = app.notificationBackfillHandlerFactory(data.user);
+				}
+			}
+
+			socket.antisocial.emitter = function (data) {
+				socket.emit('data', JSON.stringify(data));
+			};
+
+			antisocialApp.emit('open-notification-connection', socket.antisocial.user, socket.antisocial.emitter, socket.antisocial);
 
 			socket.on('highwater', function (highwater) {
 				debug('got highwater from %s %s', socket.antisocial.key, highwater);
 				if (socket.antisocial.backfillHandler) {
-					socket.antisocial.backfillHandler({
-						'info': socket.antisocial,
-						'socket': socket,
-						'highwater': highwater
-					});
+					socket.antisocial.backfillHandler(highwater, socket);
 				}
 			});
 

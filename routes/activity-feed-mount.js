@@ -126,29 +126,22 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			socket.antisocial = {
 				'friend': data.friend,
 				'user': data.user,
-				'key': data.user.username + '<-' + data.friend.remoteEndPoint,
-				'setDataHandler': function setDataHandler(handler) {
-					socket.antisocial.dataHandler = handler;
-				},
-				'setBackfillHandler': function setBackfillHandler(handler) {
-					socket.antisocial.backfillHandler = handler;
-				}
+				'key': data.user.username + '<-' + data.friend.remoteEndPoint
 			};
 
 			debug('%s /antisocial-activity connection established %s', socket.id, socket.antisocial.key);
 
-			antisocialApp.emit('open-activity-connection', {
-				'info': socket.antisocial,
-				'socket': socket
-			});
+			socket.antisocial.emitter = function (data) {
+				var message = cryptography.encrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, JSON.stringify(data));
+				socket.emit('data', message);
+			};
+
+			antisocialApp.emit('open-activity-connection', socket.antisocial.user, socket.antisocial.friend, socket.antisocial.emitter, socket.antisocial);
 
 			socket.on('highwater', function (highwater) {
 				debug('%s /antisocial-activity highwater from %s', socket.id, socket.antisocial.key, highwater);
 				if (socket.antisocial.backfillHandler) {
-					socket.antisocial.backfillHandler({
-						'info': socket.antisocial,
-						'highwater': highwater
-					});
+					socket.antisocial.backfillHandler(highwater, socket.antisocial.dataWrapper);
 				}
 			});
 
@@ -172,11 +165,11 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					}
 				}
 
-				if (socket.antisocial.dataHandler) {
-					socket.antisocial.dataHandler(data);
-				}
-				else {
-					debug('%s /antisocial-activity no data handler for %s', socket.id, socket.antisocial.key);
+				for (var appid in antisocialApp.behaviors) {
+					var app = antisocialApp.behaviors[appid];
+					if (app.activityDataHandlerFactory) {
+						app.activityDataHandlerFactory(socket.antisocial.user, socket.antisocial.friend)(data);
+					}
 				}
 			});
 
