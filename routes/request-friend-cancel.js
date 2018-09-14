@@ -100,7 +100,7 @@ module.exports = function mountRequestFriendCancel(antisocialApp) {
 				});
 			},
 			function updateFriend(friend, cb) {
-				db.deleteInstance('friends', friend.id, function (err, friend) {
+				db.deleteInstance('friends', friend.id, function (err) {
 					if (err) {
 						var e = new VError(err, '/request-friend-cancel updateFriend error');
 						return cb(e);

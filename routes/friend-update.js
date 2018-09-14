@@ -132,7 +132,7 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 						}
 					});
 
-					db.deleteInstance('friends', friend.id, function (err, friend) {
+					db.deleteInstance('friends', friend.id, function (err) {
 						if (err) {
 							var e = new VError(err, '/friend-update updateFriend error');
 							return cb(e);

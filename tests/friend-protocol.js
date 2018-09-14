@@ -36,14 +36,15 @@ describe('friends', function () {
 	});
 
 	after(function (done) {
-		//console.log('users: %j', app.db.collections.users);
-		//console.log('invitations: %j', app.db.collections.invitations);
-		//console.log('friends: %j', app.db.collections.friends);
-		//console.log('blocks: %j', app.db.collections.blocks);
 		setTimeout(function () {
+			//console.log('users: %j', app.db.collections.users);
+			//console.log('invitations: %j', app.db.collections.invitations);
+			//console.log('friends: %j', app.db.collections.friends);
+			//console.log('blocks: %j', app.db.collections.blocks);
+			//console.log('postIdMap: %j highwaterMap: %j', app.postIdMap, app.highwaterMap);
 			app.stop();
 			done();
-		}, 5000);
+		}, 10000);
 	});
 
 	it('should be able to create account 1', function (done) {
@@ -115,6 +116,7 @@ describe('friends', function () {
 			});
 	});
 
+
 	it('user1 should be able to request friend user2', function (done) {
 		client1.get('http://127.0.0.1:3000/antisocial/user-one/request-friend?endpoint=' + endpoint2).end(function (err, res) {
 			expect(res.status).to.be(200);
@@ -179,6 +181,18 @@ describe('friends', function () {
 			}).end(function (err, res) {
 				expect(res.status).to.be(200);
 				expect(res.body.status).to.equal('ok');
+				done();
+			});
+	});
+
+	it('user2 should not be able to accept friend request that is already accepted', function (done) {
+		client2.post('http://127.0.0.1:3000/antisocial/user-two/friend-request-accept')
+			.type('form')
+			.send({
+				'endpoint': endpoint1
+			}).end(function (err, res) {
+				expect(res.status).to.be(200);
+				expect(res.body.status).to.equal('error');
 				done();
 			});
 	});
@@ -285,8 +299,8 @@ describe('friends', function () {
 			'userId': userTwoId
 		}, function (err, invite) {
 			expect(err).to.be(null);
-			done()
-		})
+			done();
+		});
 	});
 
 	it('user1 should be able to request friend user2 again with invite', function (done) {
@@ -297,24 +311,11 @@ describe('friends', function () {
 		});
 	});
 
-	it('user2 should not be able to accept friend request that is already accepted', function (done) {
-		client2.post('http://127.0.0.1:3000/antisocial/user-two/friend-request-accept')
-			.type('form')
-			.send({
-				'endpoint': endpoint1
-			}).end(function (err, res) {
-				expect(res.status).to.be(200);
-				expect(res.body.status).to.equal('error');
-				done();
-			});
-	});
-
-	/*
 
 	var friend;
 	var user;
 
-	it('user1 should be able to connect to user2 socket.io activity feed', function (done) {
+	it('user1 should be able disconnect', function (done) {
 		app.db.getInstances('users', [{
 			'property': 'username',
 			'value': 'user-one'
@@ -325,38 +326,29 @@ describe('friends', function () {
 				'value': user.id
 			}], function (err, instances) {
 				friend = instances[0];
-				app.antisocial.activityFeed.connect(user, friend);
-				// wait 5 seconds then disconnect
+				//wait 2 seconds then disconnect
 				setTimeout(function () {
-					app.antisocial.activityFeed.disconnect(user, friend);
-				}, 5000);
-				done();
+					app.antisocial.activityFeed.disconnect(user, friend, function (err) {
+						expect(err).to.be(null);
+						//wait 2 seconds then continue
+						setTimeout(function () {
+							done();
+						}, 2000);
+					});
+				}, 2000);
 			});
 		});
 	});
 
-	it('user1 should not be able to connect to user2 socket.io activity feed again', function (done) {
-		app.db.getInstances('users', [{
-			'property': 'username',
-			'value': 'user-one'
-		}], function (err, instances) {
-			var user = instances[0];
-			app.db.getInstances('friends', [{
-				'property': 'userId',
-				'value': user.id
-			}], function (err, instances) {
-				var friend = instances[0];
-				app.antisocial.activityFeed.connect(user, friend);
-
-				//wait 10 seconds
-				setTimeout(function () {
-					done();
-				}, 10000);
-			});
-		});
+	it('user1 should be able increment lastPost to simulate backfill behavior', function (done) {
+		app.postIdMap[user.id] = 14;
+		done();
 	});
 
-	*/
+	it('user1 should be able connect', function (done) {
+		app.antisocial.activityFeed.connect(user, friend);
+		done();
+	});
 
 });
 

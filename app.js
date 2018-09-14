@@ -77,7 +77,11 @@ function dbHandler() {
   this.updateInstance = function (collectionName, id, patch, cb) {
     var item = self.collections[collectionName][id];
     if (!item) {
-      cb('not found', null);
+      if (cb) {
+        return cb('not found', null);
+      }
+      console.log('attempt to update a non existant instance %s.%s', collectionName, id);
+      return;
     }
     for (var prop in patch) {
       if (patch.hasOwnProperty(prop)) {
@@ -176,12 +180,25 @@ app.start = function (port) {
 
   var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
 
+  app.postIdMap = {};
+  app.highwaterMap = {};
+
   antisocialApp.on('new-friend-request', function (e) {
     console.log('antisocial new-friend-request %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
   });
 
   antisocialApp.on('new-friend', function (e) {
     console.log('antisocial new-friend %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
+
+    // simulate 10 'post' app items
+    var user = e.info.user;
+    var friend = e.info.friend;
+    if (!app.highwaterMap[friend.id]) {
+      app.highwaterMap[friend.id] = 0;
+    }
+    if (!app.postIdMap[user.id]) {
+      app.postIdMap[user.id] = 10;
+    }
   });
 
   antisocialApp.on('friend-updated', function (e) {
@@ -194,10 +211,7 @@ app.start = function (port) {
 
   antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {
     console.log('antisocial open-activity-connection %j', info.key);
-    emitter('post', 'highwater', 100);
-    emitter('post', 'data', {
-      'hello': friend.remoteName
-    });
+    emitter('post', 'highwater', app.highwaterMap[friend.id] ? app.highwaterMap[friend.id] : 0);
   });
 
   antisocialApp.on('close-activity-connection', function (e) {
@@ -206,9 +220,6 @@ app.start = function (port) {
 
   antisocialApp.on('open-notification-connection', function (user, emitter, info) {
     console.log('antisocial open-notification-connection %j', info.key);
-    emitter('post', 'data', {
-      'hello': user.username
-    });
   });
 
   antisocialApp.on('close-notification-connection', function (e) {
@@ -216,14 +227,23 @@ app.start = function (port) {
   });
 
   antisocialApp.on('activity-data-post', function (user, friend, data) {
-    console.log('activity-data-post user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+    console.log('antisocial activity-data-post user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+    if (data.postId > app.highwaterMap[friend.id]) {
+      app.highwaterMap[friend.id] = data.postId;
+    }
   });
 
   antisocialApp.on('activity-backfill-post', function (user, friend, highwater, emitter) {
-    console.log('activity-backfill-post user: %s friend: %s highwater: %s', user.name, friend.remoteEndPoint, highwater);
-    emitter('post', 'data', {
-      'activity-backfill-echo': highwater
-    });
+    console.log('antisocial activity-backfill-post user: %s friend: %s highwater: %s', user.name, friend.remoteEndPoint, highwater);
+
+    // send posts from requested highwater to end of posts
+    for (var i = highwater + 1; i <= app.postIdMap[user.id]; i++) {
+      emitter('post', 'data', {
+        'backfill': true,
+        'postId': i,
+        'source': user.username
+      });
+    }
   });
 
   antisocialApp.on('notification-data-post', function (user, data) {
@@ -232,9 +252,6 @@ app.start = function (port) {
 
   antisocialApp.on('notification-backfill-post', function (user, highwater, emitter) {
     console.log('notification-backfill-post user: %s backfill: %j', highwater);
-    emitter('post', 'data', {
-      'notification-backfill-echo': highwater
-    });
   });
 
   antisocialApp.listen(listener);

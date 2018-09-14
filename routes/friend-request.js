@@ -167,7 +167,8 @@ module.exports = function mountFriendRequest(antisocialApp) {
 					'audiences': ['public'],
 					'hash': crc.crc32(req.body.remoteEndPoint).toString(16),
 					'userId': user.id,
-					'inviteToken': invite
+					'inviteToken': invite,
+					'highwater': {}
 				};
 
 				db.newInstance('friends', newFriend, function (err, friendInstance) {
@@ -281,7 +282,6 @@ module.exports = function mountFriendRequest(antisocialApp) {
 							'user': user
 						}
 					});
-					antisocialApp.activityFeed.connect(user, friend);
 				}
 				else {
 					antisocialApp.emit('new-friend-request', {

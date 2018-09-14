@@ -79,18 +79,18 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			antisocialApp.openNotificationsListeners[socket.antisocial.key] = socket;
 
-			socket.antisocial.emitter = function (behavior, eventType, data) {
+			socket.antisocial.emitter = function (appId, eventType, data) {
 				socket.emit(eventType, {
-					'behavior': behavior,
+					'appId': appId,
 					'data': data
 				});
 			};
 
 			antisocialApp.emit('open-notification-connection', socket.antisocial.user, socket.antisocial.emitter, socket.antisocial);
 
-			socket.on('highwater', function (behavior, highwater) {
+			socket.on('highwater', function (appId, highwater) {
 				debug('got highwater from %s %s', socket.antisocial.key, highwater);
-				var appid = data.behavior;
+				var appid = data.appId;
 				antisocialApp.emit('notification-backfill-' + appid, socket.antisocial.user, highwater, socket.antisocial.dataWrapper);
 			});
 
@@ -115,7 +115,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 					}
 				}
 
-				var appid = data.behavior;
+				var appid = data.appId;
 				antisocialApp.emit('notification-data-' + appid, socket.antisocial.user, data.data);
 			});
 

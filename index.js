@@ -22,10 +22,6 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 	antisocialApp.db = dbAdaptor;
 	antisocialApp.authUserMiddleware = authUserMiddleware;
 	antisocialApp.activityFeed = require('./lib/activity-feed-subscribe')(antisocialApp);
-	antisocialApp.behaviors = {};
-	antisocialApp.addBehavior = function (id, behavior) {
-		antisocialApp.behaviors[id] = behavior;
-	};
 
 	antisocialApp.listen = function (listener) {
 		require('./routes/activity-feed-mount')(antisocialApp, listener);

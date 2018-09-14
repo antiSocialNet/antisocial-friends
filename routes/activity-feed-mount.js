@@ -128,9 +128,9 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 			debug('%s /antisocial-activity connection established %s', socket.id, socket.antisocial.key);
 
-			socket.antisocial.emitter = function (behavior, eventType, data) {
+			socket.antisocial.emitter = function (appId, eventType, data) {
 				var message = {
-					'behavior': behavior,
+					'appId': appId,
 					'data': data
 				};
 
@@ -158,7 +158,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					}
 				}
 
-				var appid = data.behavior;
+				var appid = data.appId;
 				antisocialApp.emit('activity-backfill-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data, socket.antisocial.emitter);
 			});
 
@@ -182,7 +182,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					}
 				}
 
-				var appid = data.behavior;
+				var appid = data.appId;
 				debug('%s /antisocial-activity emitting activity-data-' + appid, socket.id);
 				antisocialApp.emit('activity-data-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data);
 			});
