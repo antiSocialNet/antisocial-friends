@@ -121,10 +121,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			socket.on('disconnect', function (reason) {
 				debug('got disconnect %s %s', socket.antisocial.key, reason);
-				antisocialApp.emit('close-notification-connection', {
-					'info': socket.antisocial,
-					'reason': reason
-				});
+				antisocialApp.emit('close-notification-connection', socket.antisocial.user, reason);
 				db.updateInstance('users', socket.antisocial.user.id, {
 					'online': false
 				});

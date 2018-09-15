@@ -125,12 +125,7 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 
 				if (newStatus === 'delete' || newStatus === 'block') {
 
-					antisocialApp.emit('friend-deleted', {
-						'info': {
-							'friend': JSON.parse(JSON.stringify(friend)),
-							'user': currentUser
-						}
-					});
+					antisocialApp.emit('friend-deleted', currentUser, JSON.parse(JSON.stringify(friend)));
 
 					db.deleteInstance('friends', friend.id, function (err) {
 						if (err) {
@@ -154,12 +149,7 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 							return cb(e);
 						}
 
-						antisocialApp.emit('friend-updated', {
-							'info': {
-								'friend': friend,
-								'user': currentUser
-							}
-						});
+						antisocialApp.emit('friend-updated', currentUser, friend);
 
 						cb(null);
 					});

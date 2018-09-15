@@ -276,20 +276,10 @@ module.exports = function mountFriendRequest(antisocialApp) {
 			}
 			else {
 				if (friend.inviteToken) {
-					antisocialApp.emit('new-friend', {
-						'info': {
-							'friend': friend,
-							'user': user
-						}
-					});
+					antisocialApp.emit('new-friend', user, friend);
 				}
 				else {
-					antisocialApp.emit('new-friend-request', {
-						'info': {
-							'friend': friend,
-							'user': user
-						}
-					});
+					antisocialApp.emit('new-friend-request', user, friend);
 				}
 
 				// if success hand a request token back to caller

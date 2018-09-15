@@ -189,17 +189,14 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 			socket.on('disconnect', function (reason) {
 				debug('%s /antisocial-activity disconnect %s %s', socket.id, socket.antisocial.key, reason);
-				antisocialApp.emit('close-activity-connection', {
-					'info': socket.antisocial,
-					'reason': reason
-				});
+				antisocialApp.emit('close-activity-connection', socket.antisocial.user, socket.antisocial.friend, reason);
 				db.updateInstance('friends', socket.antisocial.friend.id, {
 					'online': false
 				});
 				delete antisocialApp.openActivityListeners[socket.antisocial.key];
 			});
 
-			antisocialApp.emit('open-activity-connection', socket.antisocial.user, socket.antisocial.friend, socket.antisocial.emitter, socket.antisocial);
+			antisocialApp.emit('open-activity-connection', socket.antisocial.user, socket.antisocial.friend, socket.antisocial.emitter);
 
 			db.updateInstance('friends', socket.antisocial.friend.id, {
 				'online': true

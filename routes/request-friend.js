@@ -260,12 +260,7 @@ module.exports = function mountRequestFriend(antisocialApp) {
 			}
 			else {
 				if (friend.status === 'accepted') {
-					antisocialApp.emit('new-friend', {
-						'info': {
-							'friend': friend,
-							'user': currentUser
-						}
-					});
+					antisocialApp.emit('new-friend', currentUser, friend);
 					setTimeout(function () {
 						antisocialApp.activityFeed.connect(currentUser, friend);
 					}, 1000);
