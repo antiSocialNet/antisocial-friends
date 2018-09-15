@@ -42,7 +42,7 @@ This function returns an **antisocialApp** object which an EventEmitter.
 
 ## User Endpoints
 
-The URL form of the endpoints confirm to the collowing conventions:
+The URL form of the endpoints confirm to the following conventions:
 
 `api-prefix` is the location where antisocial-friends is mounted defined in config
 
@@ -96,14 +96,14 @@ POST /api-prefix/local-username/friend-update
 
 ## socket.io feeds
 
-Accepted friends establish socket.io connections to update eachother about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by events received by the application.
+Accepted friends establish socket.io connections to update each other about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by events received by the application.
 
 
 ## Events
-You can handle the following events as needed. For example, to notify user about a friend request, start watching feeds etc.
+You can handle the following events as needed.
 
 ### new-friend-request event: a new friend request received
-Relevant details are in e.user (a user instance) and e.friend (a friend instance). Typically would be used to notify the user of the pending friend request.
+Relevant details are in user (a user instance) and friend (a friend instance). Typically would be used to notify the user of the pending friend request.
 ```
 antisocialApp.on('new-friend-request', function (user, friend) {
   console.log('antisocial new-friend-request %s %j', user.username, friend.remoteEndPoint);
@@ -111,7 +111,7 @@ antisocialApp.on('new-friend-request', function (user, friend) {
 ```
 
 ### new-friend event: a new friend
-Relevant details are in e.user (a user instance) and e.friend (a friend instance). Typically would be used to notify the user's friends that they have a new friend.
+Relevant details are in user (a user instance) and friend (a friend instance). Typically would be used to notify the user's friends that they have a new friend.
 ```
 antisocialApp.on('new-friend', function (user, friend) {
   console.log('antisocial new-friend %s %j', user.username, friend.remoteEndPoint);
@@ -119,7 +119,7 @@ antisocialApp.on('new-friend', function (user, friend) {
 ```
 
 ### friend-updated event: the relationship has changed
-Relevant details are in e.user (a user instance) and e.friend (a friend instance). This might be a change of server address or the friend might have changed the audiences for the user. Typically user would remove cache of notifications and re-load.
+Relevant details are in user (a user instance) and friend (a friend instance). This might be a change of server address or the friend might have changed the audiences for the user. Typically user would remove cache of notifications and re-load.
 ```
 antisocialApp.on('friend-updated', function (user, friend) {
   console.log('antisocial friend-updated %s %s', user.username, friend.remoteEndPoint);
@@ -135,11 +135,11 @@ antisocialApp.on('friend-deleted', function (user, friend) {
 ```
 
 ### open-activity-connection event: a friend activity feed has been connected.
-Hook to allow app to set up a data handler for messages received on this socket. Typically would hook up any process that would create activity entries to be transmitted to friends and to hook up functions to receive and process activity from friends.
+Hook to allow app to set up a data handler for messages received on this socket. Typically would hook up any process that would create activity entries to be transmitted to friends. Could also send a 'highwater' event to the friend to request activity since last logged in.
 ```
 antisocialApp.on('open-activity-connection', function (user, friend, emitter) {
   console.log('antisocial open-activity-connection %s<-%s', user.username, friend.remoteEndPoint);
-  emitter('post', 'highwater', app.highwaterMap[friend.id] ? app.highwaterMap[friend.id] : 0);
+  emitter('post', 'highwater', friend.lastActivityId);
 });
 ```
 
@@ -152,7 +152,7 @@ Parameters:
   `message object` JSON object to transmit
 
 ```
-emitter('appId', 'eventType', {
+emitter(appId, eventType, {
   'postId': i,
   'source': user.username
 });
@@ -163,10 +163,11 @@ Friend has sent user a message. Application would typically keep track of highwa
 ```
 antisocialApp.on('activity-data-appId', function (user, friend, data) {
   console.log('antisocial activity-data-post user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+  // save friend.lastActivityId to keep track of highwater
 });
 ```
 
-### activity-backfill-xxx event: xxx is the appId defined in the emit
+### activity-backfill-xxx event: xxx is the appId
 Typically would send any activity that has happened since the last message received by the friend (highwater). This could be a timestamp or a record number, it's up to the application to define this behavior
 
 ```
