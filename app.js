@@ -208,7 +208,7 @@ app.start = function (port) {
     console.log('antisocial friend-deleted %s %s', user.username, friend.remoteEndPoint);
   });
 
-  antisocialApp.on('open-activity-connection', function (user, friend, emitter) {
+  antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {
     console.log('antisocial open-activity-connection %s<-%s', user.username, friend.remoteEndPoint);
     emitter('post', 'highwater', app.highwaterMap[friend.id] ? app.highwaterMap[friend.id] : 0);
   });
