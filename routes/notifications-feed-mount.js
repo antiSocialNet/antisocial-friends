@@ -88,10 +88,10 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			antisocialApp.emit('open-notification-connection', socket.antisocial.user, socket.antisocial.emitter, socket.antisocial);
 
-			socket.on('highwater', function (appId, highwater) {
-				debug('got highwater from %s %s', socket.antisocial.key, highwater);
+			socket.on('highwater', function (data) {
+				debug('got highwater from %s %s', socket.antisocial.key, data);
 				var appid = data.appId;
-				antisocialApp.emit('notification-backfill-' + appid, socket.antisocial.user, highwater, socket.antisocial.dataWrapper);
+				antisocialApp.emit('notification-backfill-' + appid, socket.antisocial.user, data.highwater, socket.antisocial.emitter);
 			});
 
 			socket.on('data', function (message) {
@@ -101,7 +101,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 					message = JSON.parse(message);
 				}
 				catch (e) {
-					debug('unable to parse JSON message');
+					debug('unable to parse JSON message %j', message);
 				}
 
 				var data = message.data;
@@ -121,7 +121,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			socket.on('disconnect', function (reason) {
 				debug('got disconnect %s %s', socket.antisocial.key, reason);
-				antisocialApp.emit('close-notification-connection', socket.antisocial.user, reason);
+				antisocialApp.emit('close-notification-connection', socket.antisocial.user, reason, socket.antisocial);
 				db.updateInstance('users', socket.antisocial.user.id, {
 					'online': false
 				});
