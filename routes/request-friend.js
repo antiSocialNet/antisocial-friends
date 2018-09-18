@@ -110,7 +110,8 @@ module.exports = function mountRequestFriend(antisocialApp) {
 					'audiences': ['public'],
 					'hash': crc.crc32(req.query.endpoint).toString(16),
 					'userId': currentUser.id,
-					'inviteToken': invite
+					'inviteToken': invite,
+					'highWater': {}
 				};
 
 				db.newInstance('friends', newFriend, function (err, friendInstance) {
