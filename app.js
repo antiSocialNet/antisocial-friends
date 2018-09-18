@@ -5,8 +5,6 @@
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var uuid = require('uuid');
-var cryptography = require('antisocial-encryption');
-
 
 var app = express();
 
@@ -22,8 +20,7 @@ var antisocial = require('./index');
 
 
 // Example database adaptor for persistant storage of users and friends
-// adapt these abstract methods to your application
-// data storage scheme
+// adapt these abstract methods to your application data storage scheme
 
 function dbHandler() {
   var self = this;
@@ -79,6 +76,13 @@ function dbHandler() {
   // update item properties by id
   this.updateInstance = function (collectionName, id, patch, cb) {
     var item = self.collections[collectionName][id];
+    if (!item) {
+      if (cb) {
+        return cb('not found', null);
+      }
+      console.log('attempt to update a non existant instance %s.%s', collectionName, id);
+      return;
+    }
     for (var prop in patch) {
       if (patch.hasOwnProperty(prop)) {
         item[prop] = patch[prop];
@@ -93,6 +97,10 @@ function dbHandler() {
   };
 
   this.deleteInstance = function (collectionName, id, cb) {
+    var item = self.collections[collectionName][id];
+    if (!item) {
+      cb('not found', null);
+    }
     delete self.collections[collectionName][id];
     if (cb) {
       cb(null);
@@ -137,81 +145,6 @@ function getAuthenticatedUser(req, res, next) {
 
 app.db = db;
 
-function setupAntisocialEvents(antisocialApp) {
-  antisocialApp.on('new-friend-request', function (e) {
-    console.log('antisocial new-friend-request %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('new-friend', function (e) {
-    console.log('antisocial new-friend %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('friend-updated', function (e) {
-    console.log('antisocial friend-updated %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('friend-deleted', function (e) {
-    console.log('antisocial friend-deleted %s %j', e.info.user.username, e.info.friend.remoteEndPoint);
-  });
-
-  antisocialApp.on('open-activity-connection', function (e) {
-    var friend = e.info.friend;
-    var user = e.info.user;
-    var socket = e.socket;
-
-    console.log('antisocial new-activity-connection %j', e.info.key);
-
-    // set up data handler. will be called whenever data is received on socket
-    socket.antisocial.setDataHandler(function (data) {
-      console.log('antisocial activity-data from %s to %s %j', friend.remoteName, user.name, data);
-    });
-
-    // set up backfill handler to transmit activity since last connection
-    socket.antisocial.setBackfillHandler(function (e) {
-      var user = e.info.user;
-      var friend = e.info.friend;
-      var highwater = e.highwater;
-      console.log('antisocial backfill user %s friend %s requesting backfill since %s', user.username, friend.remoteEndPoint, highwater);
-    });
-
-    var data = JSON.stringify({
-      'hello': friend.remoteName
-    });
-
-    var message = cryptography.encrypt(friend.remotePublicKey, friend.keys.private, data);
-
-    e.socket.emit('data', message);
-  });
-
-
-  antisocialApp.on('close-activity-connection', function (e) {
-    console.log('antisocial new-activity-connection %j', e.info.key);
-  });
-
-  antisocialApp.on('open-notification-connection', function (e) {
-    console.log('antisocial new-notification-connection %j', e.info.key);
-
-    socket.antisocial.setDataHandler(function (data) {
-      console.log('antisocial notification-data from %s to %s %j', e.info.user.name, data);
-    });
-
-    e.socket.emit('data', {
-      'hello': 'world'
-    });
-  });
-
-  antisocialApp.on('close-notification-connection', function (e) {
-    console.log('antisocial new-notification-connection %j', e.info.key);
-  });
-
-  antisocialApp.on('notification-backfill', function (e) {
-    var user = e.info.user;
-    var socket = e.socket;
-    var highwater = e.highwater;
-    console.log('antisocial notification-backfill user %s requesting backfill since %s', user.username, highwater);
-  });
-}
-
 // user register route for tests
 var router = express.Router();
 router.all('/register', function (req, res) {
@@ -245,9 +178,82 @@ app.start = function (port) {
     'port': 3000
   };
 
-  var antisocialApp = antisocial(app, config, db, getAuthenticatedUser, listener);
+  var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
 
-  setupAntisocialEvents(antisocialApp);
+  app.postIdMap = {};
+  app.highwaterMap = {};
+
+  antisocialApp.on('new-friend-request', function (user, friend) {
+    console.log('antisocial new-friend-request %s %j', user.username, friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('new-friend', function (user, friend) {
+    console.log('antisocial new-friend %s %j', user.username, friend.remoteEndPoint);
+
+    // simulate 10 'post' app items
+
+    if (!app.highwaterMap[friend.id]) {
+      app.highwaterMap[friend.id] = 0;
+    }
+    if (!app.postIdMap[user.id]) {
+      app.postIdMap[user.id] = 10;
+    }
+  });
+
+  antisocialApp.on('friend-updated', function (user, friend) {
+    console.log('antisocial friend-updated %s %s', user.username, friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('friend-deleted', function (user, friend) {
+    console.log('antisocial friend-deleted %s %s', user.username, friend.remoteEndPoint);
+  });
+
+  antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {
+    console.log('antisocial open-activity-connection %s<-%s', user.username, friend.remoteEndPoint);
+    emitter('post', 'highwater', app.highwaterMap[friend.id] ? app.highwaterMap[friend.id] : 0);
+  });
+
+  antisocialApp.on('close-activity-connection', function (user, friend, reason) {
+    console.log('antisocial close-activity-connection %s<-%s %s', user.username, friend.remoteEndpoint, reason);
+  });
+
+  antisocialApp.on('open-notification-connection', function (user, emitter) {
+    console.log('antisocial open-notification-connection %s', user.username);
+  });
+
+  antisocialApp.on('close-notification-connection', function (user, reason) {
+    console.log('antisocial close-notification-connection %s %s', user.username, reason);
+  });
+
+  antisocialApp.on('activity-data-post', function (user, friend, data) {
+    console.log('antisocial activity-data-post user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+    if (data.postId > app.highwaterMap[friend.id]) {
+      app.highwaterMap[friend.id] = data.postId;
+    }
+  });
+
+  antisocialApp.on('activity-backfill-post', function (user, friend, highwater, emitter) {
+    console.log('antisocial activity-backfill-post user: %s friend: %s highwater: %s', user.name, friend.remoteEndPoint, highwater);
+
+    // send posts from requested highwater to end of posts
+    for (var i = highwater + 1; i <= app.postIdMap[user.id]; i++) {
+      emitter('post', 'data', {
+        'backfill': true,
+        'postId': i,
+        'source': user.username
+      });
+    }
+  });
+
+  antisocialApp.on('notification-data-post', function (user, data) {
+    console.log('notification-data-post user: %s data: %j', user.name, data);
+  });
+
+  antisocialApp.on('notification-backfill-post', function (user, highwater, emitter) {
+    console.log('notification-backfill-post user: %s backfill: %s', user.username, highwater);
+  });
+
+  antisocialApp.listen(listener);
 };
 
 app.stop = function () {

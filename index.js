@@ -5,7 +5,7 @@
 var express = require('express');
 var events = require('events');
 
-module.exports = function (app, config, dbAdaptor, authUserMiddleware, listener) {
+module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 	var router;
 
 	if (app.loopback) {
@@ -23,6 +23,11 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware, listener)
 	antisocialApp.authUserMiddleware = authUserMiddleware;
 	antisocialApp.activityFeed = require('./lib/activity-feed-subscribe')(antisocialApp);
 
+	antisocialApp.listen = function (listener) {
+		require('./routes/activity-feed-mount')(antisocialApp, listener);
+		require('./routes/notifications-feed-mount')(antisocialApp, listener);
+	};
+
 	require('./routes/request-friend-cancel')(antisocialApp);
 	require('./routes/request-friend')(antisocialApp);
 	require('./routes/friend-request-accept')(antisocialApp);
@@ -31,11 +36,6 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware, listener)
 	require('./routes/friend-webhook')(antisocialApp);
 	require('./routes/friend-update')(antisocialApp);
 	require('./routes/friend-exchange-token')(antisocialApp);
-
-	if (listener) {
-		require('./routes/activity-feed-mount')(antisocialApp, listener);
-		require('./routes/notifications-feed-mount')(antisocialApp, listener);
-	}
 
 	if (config.APIPrefix) {
 		app.use(config.APIPrefix, router);

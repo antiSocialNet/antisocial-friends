@@ -16,7 +16,6 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 	var db = antisocialApp.db;
 	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
-
 	if (!antisocialApp.openNotificationsListeners) {
 		antisocialApp.openNotificationsListeners = {};
 	}
@@ -73,33 +72,26 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 		'postAuthenticate': function (socket, data) {
 			socket.antisocial = {
 				'user': data.currentUser,
-				'key': data.currentUser.username,
-				'setDataHandler': function setDataHandler(handler) {
-					socket.antisocial.dataHandler = handler;
-				},
-				'setBackfillHandler': function setBackfillHandler(handler) {
-					socket.antisocial.backfillHandler = handler;
-				}
+				'key': data.currentUser.username
 			};
 
 			debug('notificationsFeedMount connection established %s', socket.antisocial.key);
 
 			antisocialApp.openNotificationsListeners[socket.antisocial.key] = socket;
 
-			antisocialApp.emit('open-notification-connection', {
-				'info': socket.antisocial,
-				'socket': socket
-			});
+			socket.antisocial.emitter = function (appId, eventType, data) {
+				socket.emit(eventType, {
+					'appId': appId,
+					'data': data
+				});
+			};
 
-			socket.on('highwater', function (highwater) {
-				debug('got highwater from %s %s', socket.antisocial.key, highwater);
-				if (socket.antisocial.backfillHandler) {
-					socket.antisocial.backfillHandler({
-						'info': socket.antisocial,
-						'socket': socket,
-						'highwater': highwater
-					});
-				}
+			antisocialApp.emit('open-notification-connection', socket.antisocial.user, socket.antisocial.emitter, socket.antisocial);
+
+			socket.on('highwater', function (data) {
+				debug('got highwater from %s %s', socket.antisocial.key, data);
+				var appid = data.appId;
+				antisocialApp.emit('notification-backfill-' + appid, socket.antisocial.user, data.highwater, socket.antisocial.emitter);
 			});
 
 			socket.on('data', function (message) {
@@ -109,7 +101,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 					message = JSON.parse(message);
 				}
 				catch (e) {
-					debug('unable to parse JSON message');
+					debug('unable to parse JSON message %j', message);
 				}
 
 				var data = message.data;
@@ -123,20 +115,13 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 					}
 				}
 
-				if (socket.antisocial.dataHandler) {
-					socket.antisocial.dataHandler(data);
-				}
-				else {
-					debug('no data handler for %s', socket.antisocial.key);
-				}
+				var appid = data.appId;
+				antisocialApp.emit('notification-data-' + appid, socket.antisocial.user, data.data);
 			});
 
 			socket.on('disconnect', function (reason) {
 				debug('got disconnect %s %s', socket.antisocial.key, reason);
-				antisocialApp.emit('close-notification-connection', {
-					'info': socket.antisocial,
-					'reason': reason
-				});
+				antisocialApp.emit('close-notification-connection', socket.antisocial.user, reason, socket.antisocial);
 				db.updateInstance('users', socket.antisocial.user.id, {
 					'online': false
 				});

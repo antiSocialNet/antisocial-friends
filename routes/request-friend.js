@@ -110,7 +110,8 @@ module.exports = function mountRequestFriend(antisocialApp) {
 					'audiences': ['public'],
 					'hash': crc.crc32(req.query.endpoint).toString(16),
 					'userId': currentUser.id,
-					'inviteToken': invite
+					'inviteToken': invite,
+					'highWater': {}
 				};
 
 				db.newInstance('friends', newFriend, function (err, friendInstance) {
@@ -258,8 +259,13 @@ module.exports = function mountRequestFriend(antisocialApp) {
 				}
 			}
 			else {
+				if (friend.status === 'accepted') {
+					antisocialApp.emit('new-friend', currentUser, friend);
+					setTimeout(function () {
+						antisocialApp.activityFeed.connect(currentUser, friend);
+					}, 1000);
+				}
 
-				// if success hand a request token back to caller
 				res.send({
 					'status': 'ok'
 				});

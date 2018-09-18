@@ -101,7 +101,7 @@ module.exports = function mountFriendRequestDecline(antisocialApp) {
 			},
 			function updateFriend(friend, cb) {
 
-				db.deleteInstance('friends', friend.id, function (err, friend) {
+				db.deleteInstance('friends', friend.id, function (err) {
 					if (err) {
 						var e = new VError(err, '/friend-request-decline updateFriend error');
 						return cb(e);

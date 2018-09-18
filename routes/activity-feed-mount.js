@@ -12,12 +12,9 @@ var async = require('async');
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
 var cryptography = require('antisocial-encryption');
-var moment = require('moment');
 
 module.exports = function activityFeedMount(antisocialApp, expressListener) {
-	var config = antisocialApp.config;
 	var db = antisocialApp.db;
-	var authUserMiddleware = antisocialApp.authUserMiddleware;
 
 	debug('mounting ws /antisocial-activity');
 
@@ -126,30 +123,43 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			socket.antisocial = {
 				'friend': data.friend,
 				'user': data.user,
-				'key': data.user.username + '<-' + data.friend.remoteEndPoint,
-				'setDataHandler': function setDataHandler(handler) {
-					socket.antisocial.dataHandler = handler;
-				},
-				'setBackfillHandler': function setBackfillHandler(handler) {
-					socket.antisocial.backfillHandler = handler;
-				}
+				'key': data.user.username + '<-' + data.friend.remoteEndPoint
 			};
 
 			debug('%s /antisocial-activity connection established %s', socket.id, socket.antisocial.key);
 
-			antisocialApp.emit('open-activity-connection', {
-				'info': socket.antisocial,
-				'socket': socket
-			});
+			socket.antisocial.emitter = function (appId, eventType, data) {
+				var message = {
+					'appId': appId,
+					'data': data
+				};
 
-			socket.on('highwater', function (highwater) {
-				debug('%s /antisocial-activity highwater from %s', socket.id, socket.antisocial.key, highwater);
-				if (socket.antisocial.backfillHandler) {
-					socket.antisocial.backfillHandler({
-						'info': socket.antisocial,
-						'highwater': highwater
-					});
+				debug('emitter (feed mount)', eventType, message);
+				message = cryptography.encrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, JSON.stringify(message));
+				socket.emit(eventType, message);
+			};
+
+			socket.on('highwater', function (data) {
+				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+				if (!decrypted.valid) { // could not validate signature
+					console.log('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
+					return;
 				}
+
+				data = decrypted.data;
+				debug('%s /antisocial-activity got highwater from %s %s', socket.id, socket.antisocial.key, data);
+
+				if (!decrypted.contentType || decrypted.contentType === 'application/json') {
+					try {
+						data = JSON.parse(decrypted.data);
+					}
+					catch (e) {
+						data = decrypted.data;
+					}
+				}
+
+				var appid = data.appId;
+				antisocialApp.emit('activity-backfill-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data, socket.antisocial.emitter);
 			});
 
 			socket.on('data', function (data) {
@@ -157,7 +167,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
 				if (!decrypted.valid) { // could not validate signature
-					debug('decryption signature validation error:', decrypted.invalidReason);
+					debug('%s /antisocial-activity decryption signature validation error:', socket.id, decrypted.invalidReason);
 					return;
 				}
 
@@ -172,27 +182,21 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					}
 				}
 
-				if (socket.antisocial.dataHandler) {
-					socket.antisocial.dataHandler(data);
-				}
-				else {
-					debug('%s /antisocial-activity no data handler for %s', socket.id, socket.antisocial.key);
-				}
+				var appid = data.appId;
+				debug('%s /antisocial-activity emitting activity-data-' + appid, socket.id);
+				antisocialApp.emit('activity-data-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data);
 			});
 
 			socket.on('disconnect', function (reason) {
 				debug('%s /antisocial-activity disconnect %s %s', socket.id, socket.antisocial.key, reason);
-				antisocialApp.emit('close-activity-connection', {
-					'info': socket.antisocial,
-					'reason': reason
-				});
+				antisocialApp.emit('close-activity-connection', socket.antisocial.user, socket.antisocial.friend, reason, socket.antisocial);
 				db.updateInstance('friends', socket.antisocial.friend.id, {
 					'online': false
 				});
 				delete antisocialApp.openActivityListeners[socket.antisocial.key];
 			});
 
-			socket.emit('highwater', socket.antisocial.friend.highWater ? socket.antisocial.friend.highWater : moment().subtract(7, 'd').toISOString());
+			antisocialApp.emit('open-activity-connection', socket.antisocial.user, socket.antisocial.friend, socket.antisocial.emitter, socket.antisocial);
 
 			db.updateInstance('friends', socket.antisocial.friend.id, {
 				'online': true
