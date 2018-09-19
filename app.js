@@ -213,15 +213,15 @@ app.start = function (port) {
     emitter('post', 'highwater', app.highwaterMap[friend.id] ? app.highwaterMap[friend.id] : 0);
   });
 
-  antisocialApp.on('close-activity-connection', function (user, friend, reason) {
+  antisocialApp.on('close-activity-connection', function (user, friend, reason, info) {
     console.log('antisocial close-activity-connection %s<-%s %s', user.username, friend.remoteEndpoint, reason);
   });
 
-  antisocialApp.on('open-notification-connection', function (user, emitter) {
+  antisocialApp.on('open-notification-connection', function (user, emitter, info) {
     console.log('antisocial open-notification-connection %s', user.username);
   });
 
-  antisocialApp.on('close-notification-connection', function (user, reason) {
+  antisocialApp.on('close-notification-connection', function (user, reason, info) {
     console.log('antisocial close-notification-connection %s %s', user.username, reason);
   });
 
