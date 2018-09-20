@@ -4,10 +4,35 @@
 
 Building blocks for myAntiSocial.net
 
-## antisocial-friends
+## antisocial-friends protocol overview
 
 This module mounts routes for any expressjs application wishing to support building and maintaining antisocial 'friend' relationships whether on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keys for later use in exchanging user to user encrypted messages over socket.io connections.
 
+Once a friend request is accepted, each side of the friend relationship can transmit messages using the 'emitter' function that is handed to the application in the `open-activity-connection` event. The emitter is a private channel for transmitting message to the friend.
+
+The emitter takes an `appId` parameter which is an identifier for the class of message (eg. IM, Post, Photo etc.) Your app should subscribe to data events for each appId you need to handle. The message is user to user encrypted for transmission over the internet using the keys that were exchanged in the friend protocol.
+```
+emitter('myappid','data',{'hello':'world'});
+```
+
+Each side sets up data handlers to listen for messages from the friend.
+```
+antisocialApp.on('activity-data-myappid', function (user, friend, message) {
+  // handle the message here
+}
+```
+* `user` is the recipient of the message
+* `friend` is the originator of the message
+* `message` contains the JSON message `{'hello':'world'}`
+
+The appId is expected to be globally unique so the convention should be something like `mydomain-myapid`.
+
+The antisocial app uses
+* `myantisocialnet-post` for posts/reactions/comments
+* `myantisocialnet-photo` for photos
+* `myantisocialnet-im` for instant message
+
+## Initialization
 ```
 var app = express();
 
