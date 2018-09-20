@@ -8,7 +8,7 @@ Building blocks for myAntiSocial.net
 
 This module mounts routes for any expressjs application wishing to support building and maintaining antisocial 'friend' relationships whether on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keys for later use in exchanging user to user encrypted messages over socket.io connections.
 
-Once a friend request is accepted, each side of the friend relationship can transmit messages using the 'emitter' function that is handed to the application in the `open-activity-connection` event.
+Once a friend request is accepted, each side of the friend relationship can transmit activity messages using the 'emitter' function that is handed to the application in the `open-activity-connection` event.
 
 ```
 antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {}
@@ -136,7 +136,7 @@ POST /api-prefix/local-username/friend-update
 
 ## socket.io feeds
 
-Accepted friends cat establish full duplex socket.io connections to update each other about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by `data` and `backfill` events received by the application.
+Accepted friends establish full duplex socket.io connections to update each other about activity. Posts, photos, IM etc are sent to the friend or groups of friends in audiences. The details of the messages are application specific but the mechanism for sending and responding to messages is driven by `data` and `backfill` events received by the application.
 
 ## Events
 The application should handle the following events as needed.
@@ -173,7 +173,10 @@ antisocialApp.on('friend-deleted', function (user, friend) {
 });
 ```
 
-### open-activity-connection event: a friend activity feed has been connected.
+## activity events
+Used to notify friends about user activity. Eg. created a post, has a new friend, posted a photo.
+
+### open-activity-connection: a friend activity feed has been connected.
 Typically would hook up any process that would create activity messages to be transmitted to friends. Could also be used to send a 'highwater' event to the friend to request activity since last logged in.
 ```
 antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {
@@ -225,6 +228,9 @@ antisocialApp.on('close-activity-connection', function (user, friend, reason, in
   console.log('antisocial close-activity-connection %s<-%s %s', user.username, friend.remoteEndpoint, reason);
 });
 ```
+
+## Notification events
+Used by the client applications (webapp, native app) to receive notifications in real time about friend activity that has been seen by friend activity event handlers.
 
 ### open-notification-connection: The user has opened the notification feed.
 A user has subscribed to notifications using browser or app.
