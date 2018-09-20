@@ -9,8 +9,18 @@ Building blocks for myAntiSocial.net
 This module mounts routes for any expressjs application wishing to support building and maintaining antisocial 'friend' relationships whether on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keys for later use in exchanging user to user encrypted messages over socket.io connections.
 
 ```
+var app = express();
+
 var antisocial = require('antisocial-friends');
-var antisocialApp = antisocial(app, config, dbAdaptor, getAuthenticatedUser, listener);
+var antisocialApp = antisocial(app, config, dbAdaptor, getAuthenticatedUser);
+
+// set up event handlers here (see below)
+
+// start http and socket.io listeners
+var http = require('http');
+server = http.createServer(app);
+var listener = server.listen(port);
+antisocialApp.listen( httpListener );
 ```
 
 ### Parameters:
@@ -40,7 +50,7 @@ logged in user and exposes it on req.antisocialUser. This is application specifi
 
 This function returns an **antisocialApp** object which an EventEmitter.
 
-## User Endpoints
+## User Endpoints Mounted by this module
 
 Endpoints are URLS that function as the base address of a user on an antisocial aware server.
 
