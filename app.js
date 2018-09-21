@@ -225,19 +225,19 @@ app.start = function (port) {
     console.log('antisocial close-notification-connection %s %s', user.username, reason);
   });
 
-  antisocialApp.on('activity-data-post', function (user, friend, data) {
-    console.log('antisocial activity-data-post user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
+  antisocialApp.on('activity-data-test', function (user, friend, data) {
+    console.log('antisocial activity-data-test user: %s friend: %s data: %j', user.name, friend.remoteEndPoint, data);
     if (data.postId > app.highwaterMap[friend.id]) {
       app.highwaterMap[friend.id] = data.postId;
     }
   });
 
-  antisocialApp.on('activity-backfill-post', function (user, friend, highwater, emitter) {
-    console.log('antisocial activity-backfill-post user: %s friend: %s highwater: %s', user.name, friend.remoteEndPoint, highwater);
+  antisocialApp.on('activity-backfill-test', function (user, friend, highwater, emitter) {
+    console.log('antisocial activity-backfill-test user: %s friend: %s highwater: %s', user.name, friend.remoteEndPoint, highwater);
 
     // send posts from requested highwater to end of posts
     for (var i = highwater + 1; i <= app.postIdMap[user.id]; i++) {
-      emitter('post', 'data', {
+      emitter('test', 'data', {
         'backfill': true,
         'postId': i,
         'source': user.username
@@ -245,12 +245,12 @@ app.start = function (port) {
     }
   });
 
-  antisocialApp.on('notification-data-post', function (user, data) {
-    console.log('notification-data-post user: %s data: %j', user.name, data);
+  antisocialApp.on('notification-data-test', function (user, data) {
+    console.log('notification-data-test user: %s data: %j', user.name, data);
   });
 
-  antisocialApp.on('notification-backfill-post', function (user, highwater, emitter) {
-    console.log('notification-backfill-post user: %s backfill: %s', user.username, highwater);
+  antisocialApp.on('notification-backfill-test', function (user, highwater, emitter) {
+    console.log('notification-backfill-test user: %s backfill: %s', user.username, highwater);
   });
 
   antisocialApp.listen(listener);
