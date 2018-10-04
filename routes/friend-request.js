@@ -238,7 +238,8 @@ module.exports = function mountFriendRequest(antisocialApp) {
 						'remotePublicKey': exchange.publicKey,
 						'remoteName': exchange.name,
 						'remoteUsername': exchange.username,
-						'uniqueRemoteUsername': unique ? exchange.username + '-' + unique : exchange.username
+						'uniqueRemoteUsername': unique ? exchange.username + '-' + unique : exchange.username,
+						'community': exchange.community
 					};
 
 					if (invitation) {

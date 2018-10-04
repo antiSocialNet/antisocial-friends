@@ -75,7 +75,8 @@ module.exports = function mountFriendExchangeToken(antisocialApp) {
 				'accessToken': friend.localAccessToken,
 				'publicKey': friend.keys.public,
 				'name': user.name,
-				'username': user.username
+				'username': user.username,
+				'community': user.community
 			};
 
 			res.send(payload);

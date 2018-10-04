@@ -153,7 +153,8 @@ router.all('/register', function (req, res) {
     'name': params.name,
     'username': params.username,
     'token': uuid(),
-    'id': uuid()
+    'id': uuid(),
+    'community': params.community
   }, function (err, user) {
     res.cookie('access_token', user.token).send({
       'status': 'ok',

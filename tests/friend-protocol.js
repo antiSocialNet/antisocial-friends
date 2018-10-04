@@ -19,6 +19,7 @@ describe('friends', function () {
 	var client2 = request.agent();
 	var client3 = request.agent();
 	var client4 = request.agent();
+	var client5 = request.agent();
 
 	var userTwoId;
 
@@ -26,6 +27,7 @@ describe('friends', function () {
 	var endpoint2 = 'http://127.0.0.1:3000/antisocial/';
 	var endpoint3 = 'http://127.0.0.1:3000/antisocial/';
 	var endpoint4 = 'http://127.0.0.1:3000/antisocial/';
+	var endpoint5 = 'http://127.0.0.1:3000/antisocial/';
 	var endpointBad = 'http://127.0.0.1:3000/antisocial/bad';
 
 	var app = require('../app');
@@ -112,6 +114,24 @@ describe('friends', function () {
 				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
 				expect(accessToken).to.be.a('string');
 				endpoint4 += res.body.result.username;
+				done();
+			});
+	});
+
+	it('should be able to create account 5 (community)', function (done) {
+		client5.post('http://127.0.0.1:3000/register')
+			.type('form')
+			.send({
+				'name': 'test community',
+				'username': 'test-community',
+				'community': true
+			})
+			.end(function (err, res) {
+				expect(err).to.be(null);
+				expect(res.status).to.equal(200);
+				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				expect(accessToken).to.be.a('string');
+				endpoint5 += res.body.result.username;
 				done();
 			});
 	});
@@ -311,6 +331,13 @@ describe('friends', function () {
 		});
 	});
 
+	it('user1 should be able to request join community', function (done) {
+		client1.get('http://127.0.0.1:3000/antisocial/user-one/request-friend?endpoint=' + encodeURIComponent(endpoint5)).end(function (err, res) {
+			expect(res.status).to.be(200);
+			expect(res.body.status).to.equal('ok');
+			done();
+		});
+	});
 
 	var friend;
 	var user;
