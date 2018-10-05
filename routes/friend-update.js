@@ -100,7 +100,7 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 						return cb(new VError('/friend-update callWebhook http error ' + response.statusCode));
 					}
 					if (_.get(body, 'status') !== 'ok') {
-						return cb(new VError('/friend-update callWebhook unexpected result %j' + body));
+						return cb(new VError('/friend-update callWebhook unexpected result %j', body));
 					}
 
 					cb(null, friend);

@@ -93,7 +93,7 @@ module.exports = function mountRequestFriendCancel(antisocialApp) {
 						return cb(new VError('/request-friend-cancel callWebhook http error ' + response.statusCode));
 					}
 					if (_.get(body, 'status') !== 'ok') {
-						return cb(new VError('/request-friend-cancel callWebhook unexpected result %j' + body));
+						return cb(new VError('/request-friend-cancel callWebhook unexpected result %j', body));
 					}
 
 					cb(null, friend);
