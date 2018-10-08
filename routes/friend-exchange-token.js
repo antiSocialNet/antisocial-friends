@@ -56,7 +56,7 @@ module.exports = function mountFriendExchangeToken(antisocialApp) {
 
 					for (var i = 0; i < friendInstances.length; i++) {
 						var friend = friendInstances[i];
-						if (friend.remoteEndPoint === endpoint && user.id === friend.userId) {
+						if (friend.remoteEndPoint === endpoint && user.id.toString() === friend.userId.toString()) {
 							return cb(null, user, friend);
 						}
 					}
