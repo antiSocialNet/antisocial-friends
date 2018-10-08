@@ -67,6 +67,7 @@ module.exports = function mountFriendExchangeToken(antisocialApp) {
 		], function (err, user, friend) {
 			if (err) {
 				var e = new WError(err, 'exchange token failed');
+				debug('/exchange-token failed %s', e.cause().message);
 				return res.status(400).send(e.cause().message);
 			}
 

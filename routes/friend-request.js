@@ -202,6 +202,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 					}
 					if (response.statusCode !== 200) {
 						var e = new VError(err, '/friend-request exchangeToken got http status: ' + response.statusCode);
+						debug('/friend-request exchangeToken error %s %s', response.statusCode, body);
 						return cb(e, user, friend);
 					}
 
