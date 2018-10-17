@@ -130,20 +130,26 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			debug('%s /antisocial-activity connection established %s', socket.id, socket.antisocial.key);
 
 			socket.antisocial.emitter = function (appId, eventType, data) {
-				var message = {
-					'appId': appId,
-					'data': data
-				};
+				refresh(antisocialApp, socket, function (err) {
+					if (err) {
+						console.log('emitter socket data refresh error', err.message, err.cause().message);
+						return;
+					}
+					var message = {
+						'appId': appId,
+						'data': data
+					};
 
-				debug('emitter (feed mount)', eventType, message);
-				message = cryptography.encrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, JSON.stringify(message));
-				socket.emit(eventType, message);
+					debug('emitter (feed mount)', eventType, message);
+					message = cryptography.encrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, JSON.stringify(message));
+					socket.emit(eventType, message);
+				});
 			};
 
 			socket.on('highwater', function (data) {
 				refresh(antisocialApp, socket, function (err) {
 					if (err) {
-						console.log('highwater event socket data refresh error', err.message);
+						console.log('highwater event socket data refresh error', err.message, err.cause().message);
 						return;
 					}
 
@@ -173,7 +179,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			socket.on('data', function (data) {
 				refresh(antisocialApp, socket, function (err) {
 					if (err) {
-						console.log('data event socket data refresh error', err.message);
+						console.log('data event socket data refresh error', err.message, err.cause().message);
 						return;
 					}
 
@@ -205,7 +211,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			socket.on('disconnect', function (reason) {
 				refresh(antisocialApp, socket, function (err) {
 					if (err) {
-						console.log('disconnect event socket data refresh error', err.message);
+						console.log('disconnect event socket data refresh error', err.message, err.cause().message);
 						return;
 					}
 
