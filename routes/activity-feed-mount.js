@@ -12,6 +12,7 @@ var async = require('async');
 var IO = require('socket.io');
 var IOAuth = require('socketio-auth');
 var cryptography = require('antisocial-encryption');
+var refresh = require('../lib/utilities').refresh;
 
 module.exports = function activityFeedMount(antisocialApp, expressListener) {
 	var db = antisocialApp.db;
@@ -140,60 +141,81 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 			};
 
 			socket.on('highwater', function (data) {
-				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
-				if (!decrypted.valid) { // could not validate signature
-					console.log('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
-					return;
-				}
-
-				data = decrypted.data;
-				debug('%s /antisocial-activity got highwater from %s %s', socket.id, socket.antisocial.key, data);
-
-				if (!decrypted.contentType || decrypted.contentType === 'application/json') {
-					try {
-						data = JSON.parse(decrypted.data);
+				refresh(antisocialApp, socket, function (err) {
+					if (err) {
+						console.log('highwater event socket data refresh error', err.message);
+						return;
 					}
-					catch (e) {
-						data = decrypted.data;
-					}
-				}
 
-				var appid = data.appId;
-				antisocialApp.emit('activity-backfill-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data, socket.antisocial.emitter);
+					var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+					if (!decrypted.valid) { // could not validate signature
+						console.log('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
+						return;
+					}
+
+					data = decrypted.data;
+					debug('%s /antisocial-activity got highwater from %s %s', socket.id, socket.antisocial.key, data);
+
+					if (!decrypted.contentType || decrypted.contentType === 'application/json') {
+						try {
+							data = JSON.parse(decrypted.data);
+						}
+						catch (e) {
+							data = decrypted.data;
+						}
+					}
+
+					var appid = data.appId;
+					antisocialApp.emit('activity-backfill-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data, socket.antisocial.emitter);
+				});
 			});
 
 			socket.on('data', function (data) {
-				debug('%s /antisocial-activity data from %s', socket.id, socket.antisocial.key);
-
-				var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
-				if (!decrypted.valid) { // could not validate signature
-					debug('%s /antisocial-activity decryption signature validation error:', socket.id, decrypted.invalidReason);
-					return;
-				}
-
-				data = decrypted.data;
-
-				if (!decrypted.contentType || decrypted.contentType === 'application/json') {
-					try {
-						data = JSON.parse(decrypted.data);
+				refresh(antisocialApp, socket, function (err) {
+					if (err) {
+						console.log('data event socket data refresh error', err.message);
+						return;
 					}
-					catch (e) {
-						data = '';
-					}
-				}
 
-				var appid = data.appId;
-				debug('%s /antisocial-activity emitting activity-data-' + appid, socket.id);
-				antisocialApp.emit('activity-data-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data);
+					debug('%s /antisocial-activity data from %s', socket.id, socket.antisocial.key);
+
+					var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+					if (!decrypted.valid) { // could not validate signature
+						debug('%s /antisocial-activity decryption signature validation error:', socket.id, decrypted.invalidReason);
+						return;
+					}
+
+					data = decrypted.data;
+
+					if (!decrypted.contentType || decrypted.contentType === 'application/json') {
+						try {
+							data = JSON.parse(decrypted.data);
+						}
+						catch (e) {
+							data = '';
+						}
+					}
+
+					var appid = data.appId;
+					debug('%s /antisocial-activity emitting activity-data-' + appid, socket.id);
+					antisocialApp.emit('activity-data-' + appid, socket.antisocial.user, socket.antisocial.friend, data.data);
+				});
 			});
 
 			socket.on('disconnect', function (reason) {
-				debug('%s /antisocial-activity disconnect %s %s', socket.id, socket.antisocial.key, reason);
-				antisocialApp.emit('close-activity-connection', socket.antisocial.user, socket.antisocial.friend, reason, socket.antisocial);
-				db.updateInstance('friends', socket.antisocial.friend.id, {
-					'online': false
+				refresh(antisocialApp, socket, function (err) {
+					if (err) {
+						console.log('disconnect event socket data refresh error', err.message);
+						return;
+					}
+
+					debug('%s /antisocial-activity disconnect %s %s', socket.id, socket.antisocial.key, reason);
+					antisocialApp.emit('close-activity-connection', socket.antisocial.user, socket.antisocial.friend, reason, socket.antisocial);
+					db.updateInstance('friends', socket.antisocial.friend.id, {
+						'online': false
+					});
+					delete antisocialApp.openActivityListeners[socket.antisocial.key];
 				});
-				delete antisocialApp.openActivityListeners[socket.antisocial.key];
 			});
 
 			antisocialApp.emit('open-activity-connection', socket.antisocial.user, socket.antisocial.friend, socket.antisocial.emitter, socket.antisocial);

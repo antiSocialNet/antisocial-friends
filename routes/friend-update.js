@@ -87,7 +87,7 @@ module.exports = function mountFriendUpdate(antisocialApp) {
 				}
 
 				var options = {
-					'url': fixIfBehindProxy(friend.remoteEndPoint + '/friend-webhook'),
+					'url': fixIfBehindProxy(antisocialApp, friend.remoteEndPoint + '/friend-webhook'),
 					'form': payload,
 					'json': true
 				};

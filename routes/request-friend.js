@@ -131,7 +131,7 @@ module.exports = function mountRequestFriend(antisocialApp) {
 				};
 
 				var options = {
-					'url': fixIfBehindProxy(friend.remoteEndPoint + '/friend-request'),
+					'url': fixIfBehindProxy(antisocialApp, friend.remoteEndPoint + '/friend-request'),
 					'form': payload,
 					'json': true,
 					'timeout': 10000
@@ -170,7 +170,7 @@ module.exports = function mountRequestFriend(antisocialApp) {
 				};
 
 				var options = {
-					'url': fixIfBehindProxy(friend.remoteEndPoint + '/exchange-token'),
+					'url': fixIfBehindProxy(antisocialApp, friend.remoteEndPoint + '/exchange-token'),
 					'form': payload,
 					'json': true
 				};

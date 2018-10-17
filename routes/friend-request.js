@@ -188,7 +188,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 				};
 
 				var options = {
-					'url': fixIfBehindProxy(friend.remoteEndPoint + '/exchange-token'),
+					'url': fixIfBehindProxy(antisocialApp, friend.remoteEndPoint + '/exchange-token'),
 					'form': payload,
 					'json': true
 				};
