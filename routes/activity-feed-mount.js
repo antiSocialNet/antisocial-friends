@@ -217,18 +217,22 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 					debug('%s /antisocial-activity disconnect %s %s', socket.id, socket.antisocial.key, reason);
 					antisocialApp.emit('close-activity-connection', socket.antisocial.user, socket.antisocial.friend, reason, socket.antisocial);
+					/*
 					db.updateInstance('friends', socket.antisocial.friend.id, {
 						'online': false
 					});
+					*/
 					delete antisocialApp.openActivityListeners[socket.antisocial.key];
 				});
 			});
 
 			antisocialApp.emit('open-activity-connection', socket.antisocial.user, socket.antisocial.friend, socket.antisocial.emitter, socket.antisocial);
 
+			/*
 			db.updateInstance('friends', socket.antisocial.friend.id, {
 				'online': true
 			});
+			*/
 		}
 	});
 };

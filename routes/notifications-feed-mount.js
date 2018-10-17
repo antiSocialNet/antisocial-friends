@@ -104,15 +104,19 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 			socket.on('disconnect', function (reason) {
 				debug('got disconnect %s %s', socket.antisocial.key, reason);
 				antisocialApp.emit('close-notification-connection', socket.antisocial.user, reason, socket.antisocial);
+				/*
 				db.updateInstance('users', socket.antisocial.user.id, {
 					'online': false
 				});
+				*/
 				delete antisocialApp.openNotificationsListeners[socket.antisocial.key];
 			});
 
+			/*
 			db.updateInstance('users', socket.antisocial.user.id, {
 				'online': true
 			});
+			*/
 		}
 	});
 };
