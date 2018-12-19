@@ -5,7 +5,6 @@
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var uuid = require('uuid');
-
 var app = express();
 
 app.use(express.json());
@@ -14,134 +13,24 @@ app.use(express.urlencoded({
 }));
 app.use(cookieParser());
 
-
 // mount the friend API under /antisocial
 var antisocial = require('./index');
 
-
-// Example database adaptor for persistant storage of users and friends
-// adapt these abstract methods to your application data storage scheme
-
-function dbHandler() {
-  var self = this;
-
-  self.collections = {
-    'users': {},
-    'friends': {},
-    'invitations': {},
-    'blocks': {}
-  };
-
-  // store an item after assigning an unique id
-  this.newInstance = function (collectionName, data, cb) {
-    data.id = uuid();
-    self.collections[collectionName][data.id] = data;
-    if (cb) {
-      cb(null, data);
-    }
-    else {
-      return data;
-    }
-  };
-
-  // get an item by matching some property
-  this.getInstances = function (collectionName, pairs, cb) {
-    var found = [];
-    for (var item in self.collections[collectionName]) {
-      if (self.collections[collectionName].hasOwnProperty(item)) {
-        var instance = self.collections[collectionName][item];
-
-        var match = 0;
-        for (var i = 0; i < pairs.length; i++) {
-          var prop = pairs[i].property;
-          var value = pairs[i].value;
-          if (instance[prop] === value) {
-            ++match;
-          }
-        }
-
-        if (match == pairs.length) {
-          found.push(instance);
-        }
-      }
-    }
-    if (cb) {
-      cb(null, found);
-    }
-    else {
-      return found;
-    }
-  };
-
-  // update item properties by id
-  this.updateInstance = function (collectionName, id, patch, cb) {
-    var item = self.collections[collectionName][id];
-    if (!item) {
-      if (cb) {
-        return cb('not found', null);
-      }
-      console.log('attempt to update a non existant instance %s.%s', collectionName, id);
-      return;
-    }
-    for (var prop in patch) {
-      if (patch.hasOwnProperty(prop)) {
-        item[prop] = patch[prop];
-      }
-    }
-    if (cb) {
-      cb(null, item);
-    }
-    else {
-      return item;
-    }
-  };
-
-  this.deleteInstance = function (collectionName, id, cb) {
-    var item = self.collections[collectionName][id];
-    if (!item) {
-      cb('not found', null);
-    }
-    delete self.collections[collectionName][id];
-    if (cb) {
-      cb(null);
-    }
-  };
-}
-
+var dbHandler = require('./examples/db');
 var db = new dbHandler();
+var getAuthenticatedUser = require('./examples/getAuthenticatedUser')(db);
 
+db.on('create-friends', function (data) {
+  console.log('db create event friends %s', data.id);
+});
 
-/*
-	Example middleware adaptor to get the logged in user.
-	exposes the current user on req.antisocialUser
-	normally this would use a cookie via some sort of token
-	to find the user in this case we use the 'token' property
-	in the users collection
-*/
+db.on('update-friends', function (data) {
+  console.log('db update event friends %s', data.id);
+});
 
-function getAuthenticatedUser(req, res, next) {
-  var token;
-
-  if (req.cookies && req.cookies.access_token) {
-    token = req.cookies.access_token;
-  }
-
-  if (req.body && req.body.access_token) {
-    token = req.body.access_token;
-  }
-
-  if (!token) {
-    return next();
-  }
-
-  db.getInstances('users', [{
-    'property': 'token',
-    'value': token
-  }], function (err, userInstances) {
-    req.antisocialUser = userInstances[0];
-    next();
-  });
-}
+db.on('delete-friends', function (data) {
+  console.log('db delete event friends %s', data.id);
+});
 
 app.db = db;
 
@@ -163,6 +52,14 @@ router.all('/register', function (req, res) {
   });
 });
 
+router.post('/post', getAuthenticatedUser, function (req, res) {
+  var post = req.body;
+  post.userId = req.antisocialUser.id;
+  app.db.newInstance('posts', post, function (err, postInstance) {
+    res.send(postInstance);
+  });
+});
+
 app.use(router);
 
 var server = null;
@@ -171,7 +68,6 @@ app.start = function (port) {
   var http = require('http');
   server = http.createServer(app);
   var listener = server.listen(port);
-
 
   var config = {
     'APIPrefix': '/antisocial',

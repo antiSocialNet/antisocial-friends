@@ -17,15 +17,35 @@ module.exports = function (app, config, dbAdaptor, authUserMiddleware) {
 
 	var antisocialApp = new events.EventEmitter();
 
+	antisocialApp.expressApp = app;
 	antisocialApp.router = router;
 	antisocialApp.config = config;
 	antisocialApp.db = dbAdaptor;
 	antisocialApp.authUserMiddleware = authUserMiddleware;
 	antisocialApp.activityFeed = require('./lib/activity-feed-subscribe')(antisocialApp);
+	antisocialApp.apps = {};
+	antisocialApp.openActivityListeners = {};
+	antisocialApp.openNotificationsListeners = {};
 
 	antisocialApp.listen = function (listener) {
 		require('./routes/activity-feed-mount')(antisocialApp, listener);
 		require('./routes/notifications-feed-mount')(antisocialApp, listener);
+	};
+
+	antisocialApp.getNotificationEmitters = function (user) {
+		var re = new RegExp('^' + user.username + '.');
+		var emitters = [];
+		for (var prop in antisocialApp.openNotificationsListeners) {
+			if (prop.match(re)) {
+				emitters.push(antisocialApp.openNotificationsListeners[prop].antisocial.emitter);
+			}
+		}
+		return emitters;
+	};
+
+	antisocialApp.getActivityEmitter = function (user, friend) {
+		var key = user.username + '<-' + friend.remoteEndPoint;
+		return antisocialApp.openActivityListeners[key] ? antisocialApp.openActivityListeners[key].antisocial.emitter : null;
 	};
 
 	require('./routes/request-friend-cancel')(antisocialApp);

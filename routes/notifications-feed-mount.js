@@ -72,7 +72,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 		'postAuthenticate': function (socket, data) {
 			socket.antisocial = {
 				'user': data.currentUser,
-				'key': data.currentUser.username
+				'key': data.currentUser.username + '.' + socket.id
 			};
 
 			debug('notificationsFeedMount connection established %s', socket.antisocial.key);
