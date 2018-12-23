@@ -17,7 +17,8 @@ function dbHandler() {
 		'blocks': {},
 		'posts': {},
 		'chats': {},
-		'ims': {}
+		'ims': {},
+		'imsessions': {}
 	};
 
 	// store an item after assigning an unique id

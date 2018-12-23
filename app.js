@@ -15,6 +15,7 @@ app.use(cookieParser());
 
 // mount the friend API under /antisocial
 var antisocial = require('./index');
+var imApp = require('./examples/im.js');
 
 var dbHandler = require('./examples/db');
 var db = new dbHandler();
@@ -76,6 +77,8 @@ app.start = function (port) {
   };
 
   var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
+
+  imApp.init(antisocialApp);
 
   app.postIdMap = {};
   app.highwaterMap = {};
@@ -149,6 +152,8 @@ app.start = function (port) {
   antisocialApp.on('notification-backfill-test', function (user, highwater, emitter) {
     console.log('notification-backfill-test user: %s backfill: %s', user.username, highwater);
   });
+
+
 
   antisocialApp.listen(listener);
 };
