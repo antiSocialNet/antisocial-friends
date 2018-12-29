@@ -239,7 +239,8 @@ module.exports.init = function (antisocialApp) {
 			'sessionId': req.imSession.id,
 			'source': myEndPoint,
 			'body': req.body.body,
-			'created': new Date()
+			'created': new Date(),
+			'via': 'post'
 		};
 
 		antisocialApp.db.newInstance('ims', data, function (err, imInstance) {
@@ -247,6 +248,9 @@ module.exports.init = function (antisocialApp) {
 				debug('could not create im', err);
 				return res.sendStatus(500);
 			}
+
+			debug('%s created im %j', currentUser.username, imInstance);
+
 			res.send({
 				'status': 'ok',
 				'session': imInstance.uuid
@@ -294,7 +298,8 @@ module.exports.init = function (antisocialApp) {
 								'members': data.members,
 								'originatorEndPoint': data.originatorEndPoint
 							};
-							debug('broadcasting %j %s %j', message, friend.remoteEndPoint, data);
+
+							debug('update-imsessions %s broadcasting to %s %j', user.username, friend.remoteEndPoint, data);
 
 							emitter('im', 'data', message);
 						}
@@ -354,13 +359,6 @@ module.exports.init = function (antisocialApp) {
 				},
 				function getMembers(user, session, cb) {
 					async.map(session.members, function (member, doneMap) {
-						debug('%j', [{
-							'property': 'remoteEndPoint',
-							'value': member
-						}, {
-							'property': 'userId',
-							'value': user.id
-						}]);
 						antisocialApp.db.getInstances('friends', [{
 							'property': 'remoteEndPoint',
 							'value': member
@@ -385,11 +383,12 @@ module.exports.init = function (antisocialApp) {
 
 					if (!session.originator) {
 						if (data.source === myEndPoint) {
-							debug('not originator, send to originator');
 
 							var emitter = antisocialApp.getActivityEmitter(user, {
 								remoteEndPoint: session.originatorEndPoint
 							});
+
+							debug('create-ims %s not originator, send to originator %s', user.username, session.originatorEndPoint);
 
 							if (!emitter) {
 								debug('emitter not found for %s', session.originatorEndPoint);
@@ -407,7 +406,7 @@ module.exports.init = function (antisocialApp) {
 									'created': data.created
 								};
 
-								debug('emitting activity %s %j', session.originatorEndPoint, message);
+								//debug('emitting activity %s %j', session.originatorEndPoint, message);
 
 								emitter('im', 'data', message);
 							}
@@ -415,16 +414,17 @@ module.exports.init = function (antisocialApp) {
 						return doneBroadcast();
 					}
 					else {
-						debug('broadcasting to friends %s', friends.length);
 
 						async.map(friends, function (friend, doneMap) {
 							if (!friend) {
 								return doneMap();
-
 							}
+
+							debug('create-ims %s broadcasting to friends %s', user.username, friend.remoteEndPoint);
+
 							var emitter = antisocialApp.getActivityEmitter(user, friend);
 							if (!emitter) {
-								debug('emitter not found for %s', friend.remoteEndPoint);
+								debug('create-ims emitter not found for %s', friend.remoteEndPoint);
 							}
 							if (emitter) {
 								var message = {
@@ -439,8 +439,6 @@ module.exports.init = function (antisocialApp) {
 									'broadcast': true,
 									'created': data.created
 								};
-
-								debug('emitting activity %s %j', friend.remoteEndPoint, message);
 
 								emitter('im', 'data', message);
 							}
@@ -479,7 +477,7 @@ module.exports.init = function (antisocialApp) {
 	*/
 
 	antisocialApp.on('activity-data-im', function (user, friend, data) {
-		debug('%s got activity-data-im from %s data:  %j', user.username, friend.remoteUsername, data);
+		debug('activity-data-im %s got from %s data:  %j', user.username, friend.remoteUsername, data);
 		async.waterfall([
 				function (cb) {
 					// get session instance
@@ -502,9 +500,12 @@ module.exports.init = function (antisocialApp) {
 				function (session, originator, cb) {
 					var myEndPoint = config.publicHost + config.APIPrefix + '/' + user.username;
 					var inSession = (data.members.indexOf(myEndPoint) !== -1);
+					if (data.originatorEndPoint === myEndPoint) {
+						inSession = true;
+					}
 
 					if (!session && inSession) {
-						debug('we are in the session members list but no session exists, create an imsessions instance');
+						debug('activity-data-im  we are in the session members list but no session exists, create an imsessions instance');
 
 						var sessionData = {
 							'uuid': data.sessionUUID,
@@ -517,15 +518,14 @@ module.exports.init = function (antisocialApp) {
 
 						antisocialApp.db.newInstance('imsessions', sessionData, function (err, sessionInstance) {
 							if (err) {
-								debug('could not create imsession %j', err);
+								debug('activity-data-im could not create imsession %j', err);
 								return cb(new Error('Could not create imsession'));
 							}
-							debug('sessionInstance: %j', sessionInstance);
 							return cb(null, sessionInstance, originator);
 						});
 					}
 					else if (session && !inSession) {
-						debug('we are not in the session members list but session exists so we were, delete session');
+						debug('activity-data-im we are not in the session members list but session exists so we were, delete session');
 
 						async.waterfall([
 							function findIms(doneFindIms) {
@@ -564,14 +564,13 @@ module.exports.init = function (antisocialApp) {
 							}
 						], function (err) {
 							if (err) {
-								debug('error deleting im data');
+								debug('activity-data-im error deleting im data');
 								cb(new VError(err, 'error deleting im data'));
 							}
 							return cb(null, session, originator);
 						});
 					}
 					else {
-						debug('update session members %j %j', session, data);
 						if (!session) {
 							return cb(null, session, originator);
 						}
@@ -588,66 +587,35 @@ module.exports.init = function (antisocialApp) {
 			],
 			function (err, session, originator) {
 				if (err) {
-					return debug('error resolving', err);
+					return debug('activity-data-im  error resolving', err);
 				}
 
 				if (data.action === 'message') {
 					var myEndPoint = config.publicHost + config.APIPrefix + '/' + user.username;
 
 					if (data.source === myEndPoint) {
-						console.log('i sent message, ignoring');
+						debug('activity-data-im  i sent message, ignoring');
 						return;
 					}
 
-					if (data.broadcast) {
-						console.log('recieved from originator, save local copy');
+					debug('activity-data-im recieved from originator, save local copy');
 
-						var imdata = {
-							'uuid': data.uuid,
-							'userId': user.id,
-							'sessionId': session.id,
-							'source': data.source,
-							'body': data.body,
-							'created': data.created
-						};
+					var imdata = {
+						'uuid': data.uuid,
+						'userId': user.id,
+						'sessionId': session.id,
+						'source': data.source,
+						'body': data.body,
+						'created': data.created,
+						'via': 'activity'
+					};
 
-						antisocialApp.db.newInstance('ims', imdata, function (err, imInstance) {
-							if (err) {
-								debug('could not create im', err);
-							}
-							return;
-						});
-					}
-
-					if (session.originator) {
-
-						debug('broadcast message to members %s', session);
-
-						async.map(session.members, function (friend, doneMap) {
-							var emitter = antisocialApp.getActivityEmitter(this.data.user, {
-								'remoteEndPoint': friend
-							});
-							if (emitter) {
-								emitter('im', 'data', data);
-							}
-							doneMap();
-						}, function (err) {
-							debug('done broadcasting', err);
-						});
-					}
-					else {
-
-						/*
-						debug('forward message to originator %j', session);
-
-						var emitter = antisocialApp.getActivityEmitter(user, {
-							'remoteEndPoint': session.originatorEndPoint
-						});
-						if (emitter) {
-							emitter('im', 'data', data);
+					antisocialApp.db.newInstance('ims', imdata, function (err, imInstance) {
+						if (err) {
+							debug('activity-data-im  could not create im', err);
 						}
-						*/
-					}
+						return;
+					});
 				}
 			});
 	});

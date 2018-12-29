@@ -37,7 +37,7 @@ describe('friends', function () {
 			console.log('users: %j', app.db.collections.users);
 			console.log('imsessions: %j', app.db.collections.imsessions);
 			console.log('ims: %j', app.db.collections.ims);
-			console.log('friends: %j', app.db.collections.friends);
+			//console.log('friends: %j', app.db.collections.friends);
 
 			//console.log('invitations: %j', app.db.collections.invitations);
 			//console.log('blocks: %j', app.db.collections.blocks);
@@ -154,48 +154,53 @@ describe('friends', function () {
 	});
 
 	it('user1 should be able to add user2 to chat session', function (done) {
-		client1.put('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
-			.type('form')
-			.send({
-				'endpoint': endpoint2
-			}).end(function (err, res) {
-				console.log(res.body);
-				expect(res.status).to.be(200);
-				expect(res.body.status).to.equal('ok');
-				done();
-			});
+		setTimeout(function () { // give events a chance to fire
+			client1.put('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'endpoint': endpoint2
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
+					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		}, 1000);
 	});
 
 	it('user1 should be able to add user3 to chat session', function (done) {
-		client1.put('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
-			.type('form')
-			.send({
-				'endpoint': endpoint3
-			}).end(function (err, res) {
-				console.log(res.body);
-				expect(res.status).to.be(200);
-				expect(res.body.status).to.equal('ok');
-				done();
-			});
+		setTimeout(function () { // give events a chance to fire
+			client1.put('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'endpoint': endpoint3
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
+					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		}, 1000);
 	});
 
 
 	it('user1 should be able to send a message to chat session', function (done) {
-		client1.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
-			.type('form')
-			.send({
-				'body': 'first message from user1'
-			}).end(function (err, res) {
-				console.log(res.body);
-				expect(res.status).to.be(200);
-				expect(res.body.status).to.equal('ok');
-				done();
-			});
+		setTimeout(function () { // give events a chance to fire
+			client1.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'body': 'first message from user1'
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
+					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		}, 1000);
 	});
 
-	/*
-
-		it('user2 should be able to send a message to chat session', function (done) {
+	it('user2 should be able to send a message to chat session', function (done) {
+		setTimeout(function () { // give events a chance to fire
 			client2.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
 				.type('form')
 				.send({
@@ -206,9 +211,8 @@ describe('friends', function () {
 					expect(res.body.status).to.equal('ok');
 					done();
 				});
-		});
-		*/
-
+		}, 1000);
+	});
 });
 
 function getCookie(headers, id) {
