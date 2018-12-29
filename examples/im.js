@@ -238,7 +238,8 @@ module.exports.init = function (antisocialApp) {
 			'userId': currentUser.id,
 			'sessionId': req.imSession.id,
 			'source': myEndPoint,
-			'body': req.body.body
+			'body': req.body.body,
+			'created': new Date()
 		};
 
 		antisocialApp.db.newInstance('ims', data, function (err, imInstance) {
@@ -288,7 +289,7 @@ module.exports.init = function (antisocialApp) {
 						if (emitter) {
 							var message = {
 								'action': 'changed',
-								'sessionId': data.uuid,
+								'sessionUUID': data.uuid,
 								'sessionName': data.name,
 								'members': data.members,
 								'originatorEndPoint': data.originatorEndPoint
@@ -386,13 +387,14 @@ module.exports.init = function (antisocialApp) {
 						if (emitter) {
 							var message = {
 								'action': 'message',
-								'sessionId': session.uuid,
+								'sessionUUID': session.uuid,
 								'sessionName': session.name,
 								'originatorEndPoint': session.originatorEndPoint,
 								'members': session.members,
 								'source': data.source,
 								'body': data.body,
-								'broadcast': true
+								'broadcast': true,
+								'created': data.created
 							};
 
 							debug('emitting activity %s %j', friend.remoteEndPoint, message);
@@ -426,7 +428,7 @@ module.exports.init = function (antisocialApp) {
 		data
 			uuid
 			action [changed|message]
-			sessionId - the uuid of the session
+			sessionUUID - the uuid of the session
 			sessionName - the name of the session
 			originatorEndpoint - the creator of the im session.
 			members - for 'changed' the endpoints of the members
@@ -439,7 +441,7 @@ module.exports.init = function (antisocialApp) {
 		async.waterfall([
 				function (cb) {
 					// get session instance
-					getSession(user, data.sessionId, function (err, session) {
+					getSession(user, data.sessionUUID, function (err, session) {
 						cb(null, session);
 					});
 				},
@@ -450,7 +452,7 @@ module.exports.init = function (antisocialApp) {
 						'value': user.id
 					}, {
 						'property': 'remoteEndPoint',
-						'value': data.originator
+						'value': data.originatorEndpoint
 					}], function (err, friends) {
 						return cb(null, session, friends[0]);
 					});
@@ -459,28 +461,29 @@ module.exports.init = function (antisocialApp) {
 					var myEndPoint = config.publicHost + config.APIPrefix + '/' + user.username;
 					var inSession = (data.members.indexOf(myEndPoint) !== -1);
 
-					debug('if we are in the session members list but no session exists, create an imsessions');
 					if (!session && inSession) {
+						debug('we are in the session members list but no session exists, create an imsessions instance');
 
 						var sessionData = {
-							'uuid': data.sessionId,
+							'uuid': data.sessionUUID,
 							'name': data.sessionName,
 							'userId': user.id,
 							'originator': false,
-							'originatorEndPoint': data.originator,
+							'originatorEndPoint': data.originatorEndpoint,
 							'members': data.members
 						};
 
 						antisocialApp.db.newInstance('imsessions', sessionData, function (err, sessionInstance) {
 							if (err) {
-								debug('could not create imsession', err);
+								debug('could not create imsession %j', err);
 								return cb(new Error('Could not create imsession'));
 							}
-							cb(null, sessionInstance, originator);
+							debug('sessionInstance: %j', sessionInstance);
+							return cb(null, sessionInstance, originator);
 						});
 					}
 					else if (session && !inSession) {
-						debug('we are not in the session members list but session exists so we sere, delete session');
+						debug('we are not in the session members list but session exists so we were, delete session');
 
 						async.waterfall([
 							function findIms(doneFindIms) {
@@ -522,12 +525,19 @@ module.exports.init = function (antisocialApp) {
 								debug('error deleting im data');
 								cb(new VError(err, 'error deleting im data'));
 							}
-							cb(null, session, originator);
+							return cb(null, session, originator);
 						});
 					}
 					else {
-						debug('todo update session members');
-						cb(null, session, originator);
+						debug('update session members');
+						antisocialApp.db.updateInstance('imsessions', session.id, {
+							'members': data.members
+						}, function (err) {
+							if (err) {
+								return cb(new VError('could not update session'));
+							}
+							return cb(null, session, originator);
+						});
 					}
 				}
 			],
@@ -536,18 +546,40 @@ module.exports.init = function (antisocialApp) {
 					return debug('error resolving', err);
 				}
 
+				debug('deal with message %j', data);
+
 				if (data.action === 'message') {
 					var myEndPoint = config.publicHost + config.APIPrefix + '/' + user.username;
+
 					if (data.source === myEndPoint) {
-						console.log('i sent message');
+						console.log('i sent message, ignoring');
 						return;
 					}
+
 					if (data.broadcast) {
-						console.log('recieved from originator');
-						return;
+						console.log('recieved from originator, save local copy');
+
+						var imdata = {
+							'uuid': data.uuid,
+							'userId': user.id,
+							'sessionId': session.id,
+							'source': data.source,
+							'body': data.body,
+							'created': data.created
+						};
+
+						antisocialApp.db.newInstance('ims', imdata, function (err, imInstance) {
+							if (err) {
+								debug('could not create im', err);
+							}
+							return;
+						});
 					}
+
 					if (session.originator) {
+
 						debug('broadcast message to members %s', session);
+
 						async.map(session.members, function (friend, doneMap) {
 							var emitter = antisocialApp.getActivityEmitter(this.data.user, {
 								'remoteEndPoint': friend
@@ -561,6 +593,7 @@ module.exports.init = function (antisocialApp) {
 						});
 					}
 					else {
+
 						debug('forward message to originator %j', session);
 
 						var emitter = antisocialApp.getActivityEmitter(user, {
@@ -578,16 +611,16 @@ module.exports.init = function (antisocialApp) {
 
 	});
 
-	function getSession(user, sessionId, cb) {
+	function getSession(user, sessionUUID, cb) {
 		var query = [{
 			'property': 'uuid',
-			'value': sessionId
+			'value': sessionUUID
 		}, {
 			'property': 'userId',
 			'value': user.id
 		}];
 
-		debug('getSession %j', query);
+		//debug('getSession %j', query);
 
 		antisocialApp.db.getInstances('imsessions', query, function (err, sessionInstances) {
 			if (err) {
@@ -607,8 +640,8 @@ module.exports.init = function (antisocialApp) {
 				return next();
 			}
 			var matches = req.path.match(pattern);
-			var sessionId = matches[1];
-			getSession(currentUser, sessionId, function (err, session) {
+			var sessionUUID = matches[1];
+			getSession(currentUser, sessionUUID, function (err, session) {
 				if (!err) {
 					req.imSession = session;
 				}

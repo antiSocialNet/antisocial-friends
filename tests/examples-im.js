@@ -179,20 +179,20 @@ describe('friends', function () {
 			});
 	});
 
-	/*
-		it('user1 should be able to send a message to chat session', function (done) {
-			client1.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
-				.type('form')
-				.send({
-					'body': 'first message'
-				}).end(function (err, res) {
-					console.log(res.body);
-					expect(res.status).to.be(200);
-					expect(res.body.status).to.equal('ok');
-					done();
-				});
-		});
-		*/
+
+	it('user1 should be able to send a message to chat session', function (done) {
+		client1.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+			.type('form')
+			.send({
+				'body': 'first message'
+			}).end(function (err, res) {
+				console.log(res.body);
+				expect(res.status).to.be(200);
+				expect(res.body.status).to.equal('ok');
+				done();
+			});
+	});
+
 });
 
 function getCookie(headers, id) {
