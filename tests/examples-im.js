@@ -37,9 +37,9 @@ describe('friends', function () {
 			console.log('users: %j', app.db.collections.users);
 			console.log('imsessions: %j', app.db.collections.imsessions);
 			console.log('ims: %j', app.db.collections.ims);
+			console.log('friends: %j', app.db.collections.friends);
 
 			//console.log('invitations: %j', app.db.collections.invitations);
-			//console.log('friends: %j', app.db.collections.friends);
 			//console.log('blocks: %j', app.db.collections.blocks);
 			//console.log('postIdMap: %j highwaterMap: %j', app.postIdMap, app.highwaterMap);
 
@@ -184,7 +184,7 @@ describe('friends', function () {
 		client1.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
 			.type('form')
 			.send({
-				'body': 'first message'
+				'body': 'first message from user1'
 			}).end(function (err, res) {
 				console.log(res.body);
 				expect(res.status).to.be(200);
@@ -192,6 +192,22 @@ describe('friends', function () {
 				done();
 			});
 	});
+
+	/*
+
+		it('user2 should be able to send a message to chat session', function (done) {
+			client2.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'body': 'message from user2'
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
+					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		});
+		*/
 
 });
 
