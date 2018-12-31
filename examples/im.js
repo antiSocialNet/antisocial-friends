@@ -17,7 +17,7 @@ var debug = require('debug')('antisocial-im');
 
 	Only the originator can add users to the session.
 
-	Any participant can drop out of the session at any time. If it is the originator
+	Any participant can drop out of the session at any time. If resigner is the originator
 	the entire session is destroyed.
 
 	Originator calls POST /im to make session
@@ -40,7 +40,7 @@ var debug = require('debug')('antisocial-im');
 
 	Any session member call POST /im/sessionId
 		create im
-			if auhor is session originator bradcast it to members
+			if author is session originator bradcast it to members
 			else send it to session originator for broadcast
 
 */
@@ -64,7 +64,7 @@ module.exports.init = function (antisocialApp) {
 		// must be a logged in user
 		var currentUser = req.antisocialUser;
 		if (!currentUser) {
-			debug('not logged in');
+			debug('POST /im not logged in');
 			return res.sendStatus(401);
 		}
 
@@ -81,7 +81,7 @@ module.exports.init = function (antisocialApp) {
 
 		antisocialApp.db.newInstance('imsessions', data, function (err, sessionInstance) {
 			if (err) {
-				debug('could not create imsession', err);
+				debug('POST /im could not create imsession', err);
 				return res.sendStatus(500);
 			}
 			res.send({
@@ -107,31 +107,31 @@ module.exports.init = function (antisocialApp) {
 		// must be a logged in user
 		var currentUser = req.antisocialUser;
 		if (!currentUser) {
-			debug('not logged in');
+			debug('PUT /im/xxx not logged in');
 			return res.sendStatus(401);
 		}
 
 		// session must exist
 		if (!req.imSession) {
-			debug('session not found');
+			debug('PUT /im/xxx session not found');
 			return res.sendStatus(404);
 		}
 
 		// must be originator of session
 		if (!req.imSession.originator) {
-			debug('not originator');
+			debug('PUT /im/xxx not originator');
 			return res.sendStatus(401);
 		}
 
 		// body.endpoint is required
 		if (!req.body.endpoint) {
-			debug('missing body.endpoint');
+			debug('PUT /im/xxx missing body.endpoint');
 			return res.sendStatus(400);
 		}
 
 		// body.endpoint must be member of session
 		if (req.imSession.members.indexOf(req.body.endpoint) !== -1) {
-			debug(req.body.endpoint + ' is already a member of imsession');
+			debug('PUT /im/xxx ' + req.body.endpoint + ' is already a member of imsession');
 			return res.sendStatus(400);
 		}
 
@@ -172,41 +172,47 @@ module.exports.init = function (antisocialApp) {
 		// must be a logged in user
 		var currentUser = req.antisocialUser;
 		if (!currentUser) {
-			debug('not logged in');
+			debug('DELETE /im/xxx not logged in');
 			return res.sendStatus(401);
 		}
 
 		// session must exist
 		if (!req.imSession) {
-			debug('session not found');
+			debug('DELETE /im/xxx session not found');
 			return res.sendStatus(404);
 		}
 
-		// body.endpoint is required
-		if (!req.body.endpoint) {
-			debug('missing body.endpoint');
-			return res.sendStatus(400);
+		if (!req.imSession.originator) {
+			// TODO: Not the originator so remove self??
 		}
+		else {
 
-		// body.endpoint must be member of session
-		if (req.imSession.friends.indexOf(req.body.endpoint) === -1) {
-			debug(req.body.endpoint + ' is not a member of imsession');
-			return res.sendStatus(404);
-		}
-
-		// update the imsession
-		req.imSession.members.splice(req.imSession.members.indexOf(req.body.endpoint), 1);
-
-		antisocialApp.db.updateInstance('imsessions', req.imSession.id, {
-			'members': req.imSession.members
-		}, function (err) {
-			if (err) {
-				return res.sendStatus(500);
+			// body.endpoint is required
+			if (!req.body.endpoint) {
+				debug('DELETE /im/xxx missing body.endpoint');
+				return res.sendStatus(400);
 			}
-			res.send({
-				'status': 'ok'
+
+			// body.endpoint must be member of session
+			if (req.imSession.members.indexOf(req.body.endpoint) === -1) {
+				debug('DELETE /im/xxx ' + req.body.endpoint + ' is not a member of imsession');
+				return res.sendStatus(404);
+			}
+
+			// update the imsession
+			req.imSession.members.splice(req.imSession.members.indexOf(req.body.endpoint), 1);
+
+			antisocialApp.db.updateInstance('imsessions', req.imSession.id, {
+				'members': req.imSession.members
+			}, function (err) {
+				if (err) {
+					return res.sendStatus(500);
+				}
+				res.send({
+					'status': 'ok'
+				});
 			});
-		});
+		}
 	});
 
 	/*
@@ -222,12 +228,12 @@ module.exports.init = function (antisocialApp) {
 		// must be a logged in user
 		var currentUser = req.antisocialUser;
 		if (!currentUser) {
-			debug('not logged in');
+			debug('POST /im/xxx not logged in');
 			return res.sendStatus(401);
 		}
 
 		if (!req.imSession) {
-			debug('session not found');
+			debug('POST /im/xxx session not found');
 			return res.sendStatus(404);
 		}
 
@@ -245,11 +251,11 @@ module.exports.init = function (antisocialApp) {
 
 		antisocialApp.db.newInstance('ims', data, function (err, imInstance) {
 			if (err) {
-				debug('could not create im', err);
+				debug('POST /im/xxx could not create im', err);
 				return res.sendStatus(500);
 			}
 
-			debug('%s created im %j', currentUser.username, imInstance);
+			debug('POST /im/xxx %s created im %j', currentUser.username, imInstance);
 
 			res.send({
 				'status': 'ok',
@@ -259,8 +265,11 @@ module.exports.init = function (antisocialApp) {
 	});
 
 	antisocialApp.db.on('update-imsessions', function (data) {
-		debug('db update event for imsession %s', data.id);
-		if (data.originator) {
+		debug('update-imsessions event %s', data.id);
+		if (!data.originator) {
+			debug('update-imsessions event not originator, ignoring');
+		}
+		else {
 			async.waterfall([
 				function getUser(cb) { // get user from imsession
 					antisocialApp.db.getInstances('users', [{
@@ -299,7 +308,7 @@ module.exports.init = function (antisocialApp) {
 								'originatorEndPoint': data.originatorEndPoint
 							};
 
-							debug('update-imsessions %s broadcasting to %s %j', user.username, friend.remoteEndPoint, data);
+							debug('update-imsessions event %s broadcasting to %s %j', user.username, friend.remoteEndPoint, data);
 
 							emitter('im', 'data', message);
 						}
@@ -309,20 +318,20 @@ module.exports.init = function (antisocialApp) {
 					});
 				}
 			], function (err) {
-				// done processing update-imsession event
+				debug('update-imsessions event done');
 			});
 		}
 	});
 
 	antisocialApp.db.on('delete-imsessions', function (data) {
-		debug('db delete event for imsession %s', data.id);
+		debug('delete-imsessions event %s', data.id);
 		// TODO
 		// if originator send 'removed' to all
 		// else send 'removed' to originator
 	});
 
 	antisocialApp.db.on('create-ims', function (data) {
-		debug('db create event for im %j', data);
+		debug('create-ims event %j', data);
 		async.waterfall([
 				function getUser(cb) { // get user
 					antisocialApp.db.getInstances('users', [{
@@ -391,7 +400,7 @@ module.exports.init = function (antisocialApp) {
 							debug('create-ims %s not originator, send to originator %s', user.username, session.originatorEndPoint);
 
 							if (!emitter) {
-								debug('emitter not found for %s', session.originatorEndPoint);
+								debug('create-ims event emitter not found for %s', session.originatorEndPoint);
 							}
 							if (emitter) {
 								var message = {
@@ -406,8 +415,6 @@ module.exports.init = function (antisocialApp) {
 									'created': data.created
 								};
 
-								//debug('emitting activity %s %j', session.originatorEndPoint, message);
-
 								emitter('im', 'data', message);
 							}
 						}
@@ -420,11 +427,11 @@ module.exports.init = function (antisocialApp) {
 								return doneMap();
 							}
 
-							debug('create-ims %s broadcasting to friends %s', user.username, friend.remoteEndPoint);
+							debug('create-ims event %s broadcasting to friends %s', user.username, friend.remoteEndPoint);
 
 							var emitter = antisocialApp.getActivityEmitter(user, friend);
 							if (!emitter) {
-								debug('create-ims emitter not found for %s', friend.remoteEndPoint);
+								debug('create-ims event emitter not found for %s', friend.remoteEndPoint);
 							}
 							if (emitter) {
 								var message = {
@@ -450,16 +457,19 @@ module.exports.init = function (antisocialApp) {
 				}
 			],
 			function (err) {
-				debug('done processing create-ims %j', err);
+				if (err) {
+					debug('create-ims event error %j', err);
+				}
+				debug('create-ims event done');
 			});
 	});
 
 	antisocialApp.db.on('update-ims', function (data) {
-		debug('db update event for im %s', data.id);
+		debug('update-ims event %s', data.id);
 	});
 
 	antisocialApp.db.on('delete-ims', function (data) {
-		debug('db delete event for im %s', data.id);
+		debug('delete-ims event %s', data.id);
 	});
 
 	/*
@@ -477,7 +487,7 @@ module.exports.init = function (antisocialApp) {
 	*/
 
 	antisocialApp.on('activity-data-im', function (user, friend, data) {
-		debug('activity-data-im %s got from %s data:  %j', user.username, friend.remoteUsername, data);
+		debug('activity-data-im event %s got from %s data:  %j', user.username, friend.remoteUsername, data);
 		async.waterfall([
 				function (cb) {
 					// get session instance
@@ -505,7 +515,7 @@ module.exports.init = function (antisocialApp) {
 					}
 
 					if (!session && inSession) {
-						debug('activity-data-im  we are in the session members list but no session exists, create an imsessions instance');
+						debug('activity-data-im event we are in the session members list but no session exists, create an imsessions instance');
 
 						var sessionData = {
 							'uuid': data.sessionUUID,
@@ -518,14 +528,14 @@ module.exports.init = function (antisocialApp) {
 
 						antisocialApp.db.newInstance('imsessions', sessionData, function (err, sessionInstance) {
 							if (err) {
-								debug('activity-data-im could not create imsession %j', err);
+								debug('activity-data-im event could not create imsession %j', err);
 								return cb(new Error('Could not create imsession'));
 							}
 							return cb(null, sessionInstance, originator);
 						});
 					}
 					else if (session && !inSession) {
-						debug('activity-data-im we are not in the session members list but session exists so we were, delete session');
+						debug('activity-data-im event we are not in the session members list but session exists so we were, delete session');
 
 						async.waterfall([
 							function findIms(doneFindIms) {
@@ -564,7 +574,7 @@ module.exports.init = function (antisocialApp) {
 							}
 						], function (err) {
 							if (err) {
-								debug('activity-data-im error deleting im data');
+								debug('activity-data-im event error deleting im data');
 								cb(new VError(err, 'error deleting im data'));
 							}
 							return cb(null, session, originator);
@@ -587,18 +597,18 @@ module.exports.init = function (antisocialApp) {
 			],
 			function (err, session, originator) {
 				if (err) {
-					return debug('activity-data-im  error resolving', err);
+					return debug('activity-data-im event error resolving', err);
 				}
 
 				if (data.action === 'message') {
 					var myEndPoint = config.publicHost + config.APIPrefix + '/' + user.username;
 
 					if (data.source === myEndPoint) {
-						debug('activity-data-im  i sent message, ignoring');
+						debug('activity-data-im event i sent message, ignoring');
 						return;
 					}
 
-					debug('activity-data-im recieved from originator, save local copy');
+					debug('activity-data-im event recieved from originator, save local copy');
 
 					var imdata = {
 						'uuid': data.uuid,
@@ -612,7 +622,7 @@ module.exports.init = function (antisocialApp) {
 
 					antisocialApp.db.newInstance('ims', imdata, function (err, imInstance) {
 						if (err) {
-							debug('activity-data-im  could not create im', err);
+							debug('activity-data-im event could not create im', err);
 						}
 						return;
 					});
@@ -632,8 +642,6 @@ module.exports.init = function (antisocialApp) {
 			'property': 'userId',
 			'value': user.id
 		}];
-
-		//debug('getSession %j', query);
 
 		antisocialApp.db.getInstances('imsessions', query, function (err, sessionInstances) {
 			if (err) {

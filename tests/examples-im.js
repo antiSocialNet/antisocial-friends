@@ -213,6 +213,37 @@ describe('friends', function () {
 				});
 		}, 1000);
 	});
+
+	it('user3 should be able to send a message to chat session', function (done) {
+		setTimeout(function () { // give events a chance to fire
+			client3.post('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'body': 'message from user3'
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
+					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		}, 1000);
+	});
+
+	it('user3 should be able to leave chat session', function (done) {
+		setTimeout(function () { // give events a chance to fire
+			client3.delete('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'endpoint': endpoint3
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
+					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		}, 1000);
+	});
+
 });
 
 function getCookie(headers, id) {
