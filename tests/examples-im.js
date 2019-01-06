@@ -238,7 +238,20 @@ describe('friends', function () {
 				}).end(function (err, res) {
 					console.log(res.body);
 					expect(res.status).to.be(200);
-					expect(res.body.status).to.equal('ok');
+					done();
+				});
+		}, 1000);
+	});
+
+	it('user1 should be able to leave chat session', function (done) {
+		setTimeout(function () { // give events a chance to fire
+			client1.delete('http://127.0.0.1:3000/antisocial/im/' + imSessionID)
+				.type('form')
+				.send({
+					'endpoint': endpoint1
+				}).end(function (err, res) {
+					console.log(res.body);
+					expect(res.status).to.be(200);
 					done();
 				});
 		}, 1000);

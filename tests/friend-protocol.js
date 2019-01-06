@@ -343,18 +343,19 @@ describe('friends', function () {
 	var user;
 
 	it('user1 should be able disconnect', function (done) {
-		app.db.getInstances('users', [{
-			'property': 'username',
-			'value': 'user-one'
-		}], function (err, instances) {
-			user = instances[0];
-			app.db.getInstances('friends', [{
-				'property': 'userId',
-				'value': user.id
+		//wait 2 seconds then disconnect
+		setTimeout(function () {
+			app.db.getInstances('users', [{
+				'property': 'username',
+				'value': 'user-one'
 			}], function (err, instances) {
-				friend = instances[0];
-				//wait 2 seconds then disconnect
-				setTimeout(function () {
+				user = instances[0];
+				app.db.getInstances('friends', [{
+					'property': 'userId',
+					'value': user.id
+				}], function (err, instances) {
+					friend = instances[0];
+
 					app.antisocial.activityFeed.disconnect(user, friend, function (err) {
 						expect(err).to.be(null);
 						//wait 2 seconds then continue
@@ -362,9 +363,9 @@ describe('friends', function () {
 							done();
 						}, 2000);
 					});
-				}, 2000);
+				});
 			});
-		});
+		}, 2000);
 	});
 
 	it('user1 should be able increment lastPost to simulate backfill behavior', function (done) {
