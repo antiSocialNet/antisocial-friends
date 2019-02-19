@@ -15,7 +15,8 @@ var DEFAULT_TOKEN_LEN = 64;
 		'username': String - unique username,
 		'email': String - unique email address,
 		'password': String - salted hash,
-		'created': Date - date created
+		'created': Date - date created,
+		'community': Boolean - true is account is an antisocial community, not a user
 	}
 
 	tokens schema:
@@ -40,12 +41,13 @@ module.exports = function (app, db, authUserMiddleware) {
 		return bcrypt.hashSync(plaintext, salt);
 	}
 
-	function createUser(name, username, email, password, done) {
+	function createUser(params, done) {
 		db.newInstance('users', {
-			'name': name,
-			'username': username,
-			'email': email,
-			'password': saltAndHash(password),
+			'name': params.name,
+			'username': params.username,
+			'email': params.email,
+			'password': saltAndHash(params.password),
+			'community': params.community,
 			'created': new Date().toISOString()
 		}, function (err, user) {
 			done(err, user);
@@ -95,7 +97,7 @@ module.exports = function (app, db, authUserMiddleware) {
 				});
 			}
 
-			createUser(req.body.name, req.body.username, req.body.email, req.body.password, function (err, user) {
+			createUser(req.body, function (err, user) {
 				if (err) {
 					return res.status(500).json(err);
 				}
@@ -109,6 +111,7 @@ module.exports = function (app, db, authUserMiddleware) {
 					}).send({
 						'status': 'ok',
 						'result': {
+							'id': user.id,
 							'name': user.name,
 							'username': user.username,
 							'email': user.email
@@ -170,6 +173,7 @@ module.exports = function (app, db, authUserMiddleware) {
 						}).send({
 							'status': 'ok',
 							'result': {
+								'id': user.id,
 								'name': user.name,
 								'username': user.username,
 								'email': user.email
