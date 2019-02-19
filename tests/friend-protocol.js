@@ -39,8 +39,8 @@ describe('friends', function () {
 
 	after(function (done) {
 		setTimeout(function () {
-			//console.log('users: %j', app.db.collections.users);
-			//console.log('invitations: %j', app.db.collections.invitations);
+			console.log('users: %j', app.db.collections.users);
+			console.log('invitations: %j', app.db.collections.invitations);
 			//console.log('friends: %j', app.db.collections.friends);
 			//console.log('blocks: %j', app.db.collections.blocks);
 			//console.log('postIdMap: %j highwaterMap: %j', app.postIdMap, app.highwaterMap);
@@ -50,16 +50,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 1', function (done) {
-		client1.post('http://127.0.0.1:3000/register')
+		client1.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user one',
-				'username': 'user-one'
+				'username': 'user-one',
+				'email': 'test-1@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint1 += res.body.result.username;
 				done();
@@ -67,16 +69,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 2', function (done) {
-		client2.post('http://127.0.0.1:3000/register')
+		client2.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user two',
-				'username': 'user-two'
+				'username': 'user-two',
+				'email': 'test-1@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint2 += res.body.result.username;
 				userTwoId = res.body.result.id;
@@ -85,16 +89,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 3', function (done) {
-		client3.post('http://127.0.0.1:3000/register')
+		client3.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user three',
-				'username': 'user-three'
+				'username': 'user-three',
+				'email': 'test-1@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint3 += res.body.result.username;
 				done();
@@ -102,16 +108,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 4', function (done) {
-		client4.post('http://127.0.0.1:3000/register')
+		client4.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user four',
-				'username': 'user-four'
+				'username': 'user-four',
+				'email': 'test-1@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint4 += res.body.result.username;
 				done();
@@ -119,17 +127,19 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 5 (community)', function (done) {
-		client5.post('http://127.0.0.1:3000/register')
+		client5.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'test community',
 				'username': 'test-community',
-				'community': true
+				'email': 'test-1@myantisocial.net',
+				'password': 'Testing123',
+				'community': true,
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint5 += res.body.result.username;
 				done();

@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({
   extended: false
 }));
-app.use(cookieParser());
+app.use(cookieParser('someSecretThisIs'));
 
 // mount the friend API under /antisocial
 var antisocial = require('./index');
@@ -35,23 +35,10 @@ db.on('delete-friends', function (data) {
 
 app.db = db;
 
-// user register route for tests
+var userAPI = require('./examples/api-reg-users')(express, db, getAuthenticatedUser);
+app.use('/api/users', userAPI);
+
 var router = express.Router();
-router.all('/register', function (req, res) {
-  var params = req.method === 'GET' ? req.query : req.body;
-  app.db.newInstance('users', {
-    'name': params.name,
-    'username': params.username,
-    'token': uuid(),
-    'id': uuid(),
-    'community': params.community
-  }, function (err, user) {
-    res.cookie('access_token', user.token).send({
-      'status': 'ok',
-      'result': user
-    });
-  });
-});
 
 router.post('/post', getAuthenticatedUser, function (req, res) {
   var post = req.body;

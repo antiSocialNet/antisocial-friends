@@ -12,6 +12,7 @@ function dbHandler() {
 
 	self.collections = {
 		'users': {},
+		'tokens': {},
 		'friends': {},
 		'invitations': {},
 		'blocks': {},
@@ -68,7 +69,7 @@ function dbHandler() {
 		var item = self.collections[collectionName][id];
 		if (!item) {
 			if (cb) {
-				return cb('not found', null);
+				return cb(new Error('not found'), null);
 			}
 			console.log('attempt to update a non existant instance %s.%s', collectionName, id);
 			return;
@@ -92,7 +93,7 @@ function dbHandler() {
 	this.deleteInstance = function (collectionName, id, cb) {
 		var item = self.collections[collectionName][id];
 		if (!item) {
-			cb('not found', null);
+			cb(new Error('not found'), null);
 		}
 
 		self.emit('delete-' + collectionName, item);

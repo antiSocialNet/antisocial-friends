@@ -21,9 +21,12 @@
   },
   "devDependencies": {
     "assert": "^1.4.1",
+    "bcrypt": "^3.0.4",
     "cookie-parser": "~1.4.3",
     "expect.js": "^0.3.1",
-    "superagent": "^3.8.3"
+    "express-validator": "^5.3.1",
+    "superagent": "^3.8.3",
+    "uid2": "^0.0.3"
   },
   "repository": {
     "type": "git",
