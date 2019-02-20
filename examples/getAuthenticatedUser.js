@@ -20,7 +20,7 @@ module.exports = function (db) {
 	}
 
 	function touchToken(token, cb) {
-		debug('touchToken');
+		debug('touchToken %j', token);
 		var now = Date.now();
 		var accessed = new Date(token.lastaccess).getTime();
 		var elapsedSeconds = (now - accessed) / 1000;
@@ -30,7 +30,7 @@ module.exports = function (db) {
 		}
 
 		db.updateInstance('tokens', token.id, {
-			'lastaccess': new Date().toISOString()
+			'lastaccess': new Date()
 		}, cb);
 	}
 
@@ -50,6 +50,7 @@ module.exports = function (db) {
 		}
 
 		if (!token) {
+			debug('no token in headers or cookies');
 			return next();
 		}
 
@@ -64,13 +65,15 @@ module.exports = function (db) {
 				return next();
 			}
 
+			debug('token: %j', tokenInstances[0]);
+
 			if (!validToken(tokenInstances[0])) {
 				db.deleteInstance('tokens', req.antisocialToken.id, function (err) {
 					next();
 				});
 			}
 			else {
-				touchToken(token, function (err) {
+				touchToken(tokenInstances[0], function (err) {
 					db.getInstances('users', [{
 						'property': 'id',
 						'value': tokenInstances[0].userId

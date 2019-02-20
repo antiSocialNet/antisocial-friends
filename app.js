@@ -35,7 +35,19 @@ db.on('delete-friends', function (data) {
 
 app.db = db;
 
-var userAPI = require('./examples/api-reg-users')(express, db, getAuthenticatedUser);
+var MYSQLdbHandler = require('./examples/db-mysql');
+
+var mysql = new MYSQLdbHandler({
+  host: 'localhost',
+  user: 'testuser',
+  password: 'testpassword',
+  db: 'testdb',
+  charset: 'utf8',
+  collation: 'utf8_general_ci'
+});
+
+
+var userAPI = require('./examples/api-reg-users')(express, mysql, getAuthenticatedUser);
 app.use('/api/users', userAPI);
 
 var router = express.Router();

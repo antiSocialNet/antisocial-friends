@@ -48,7 +48,7 @@ module.exports = function (app, db, authUserMiddleware) {
 			'email': params.email,
 			'password': saltAndHash(params.password),
 			'community': params.community,
-			'created': new Date().toISOString()
+			'created': new Date()
 		}, function (err, user) {
 			done(err, user);
 		});
@@ -60,8 +60,8 @@ module.exports = function (app, db, authUserMiddleware) {
 			'userId': user.id,
 			'token': guid,
 			'ttl': DEFAULT_TTL,
-			'lastaccess': new Date().toISOString(),
-			'created': new Date().toISOString()
+			'lastaccess': new Date(),
+			'created': new Date()
 		}, function (err, user) {
 			done(err, user);
 		});
@@ -88,6 +88,8 @@ module.exports = function (app, db, authUserMiddleware) {
 		.matches('[A-Z]').withMessage('password must have at least one uppercase character'),
 
 		function (req, res) {
+
+			debug('/register', req.body);
 
 			var errors = validate.validationResult(req);
 			if (!errors.isEmpty()) {

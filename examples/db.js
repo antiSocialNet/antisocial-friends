@@ -5,8 +5,10 @@ var uuid = require('uuid');
 // Example database adaptor for persistant storage of users and friends
 // adapt these abstract methods to your application data storage scheme
 
-function dbHandler() {
+function dbHandler(options) {
 	events.EventEmitter.call(this);
+
+	this.options = options;
 
 	var self = this;
 
