@@ -46,6 +46,47 @@ var mysql = new MYSQLdbHandler({
   collation: 'utf8_general_ci'
 });
 
+mysql.defineTable('users', {
+  'id': {
+    type: 'string',
+    mySQLType: 'VARCHAR(36)',
+    mySQLOpts: ['primary key']
+  }
+}, {
+  'name': {
+    type: 'string',
+    mySQLType: 'VARCHAR(80)'
+  }
+}, {
+  'username': {
+    type: 'string',
+    mySQLType: 'VARCHAR(80)',
+    mySQLOpts: ['unique key']
+  }
+}, {
+  'email': {
+    type: 'string',
+    mySQLType: 'VARCHAR(80)',
+    mySQLOpts: ['unique key']
+  }
+}, {
+  'password': {
+    type: 'string',
+    mySQLType: 'VARCHAR(80)'
+  }
+}, {
+  'community': {
+    type: 'string',
+    mySQLType: 'CHAR(1)'
+  }
+}, {
+  'created': {
+    type: 'datetime',
+    mySQLType: 'DATETIME'
+  }
+});
+
+mysql.defineTable('tokens', {});
 
 var userAPI = require('./examples/api-reg-users')(express, mysql, getAuthenticatedUser);
 app.use('/api/users', userAPI);

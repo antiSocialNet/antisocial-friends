@@ -1,12 +1,17 @@
-var validate = require('express-validator/check');
-var uuid = require('uuid');
-var bcrypt = require('bcrypt');
-var uid = require('uid2');
-var debug = require('debug')('antisocial-user');
+const {
+	check, validationResult
+} = require('express-validator/check');
 
-var DEFAULT_TTL = 1209600; // 2 weeks in seconds
-var DEFAULT_SALT_ROUNDS = 10;
-var DEFAULT_TOKEN_LEN = 64;
+const uuid = require('uuid/v4');
+const bcrypt = require('bcrypt');
+const uid = require('uid2');
+const debug = require('debug')('antisocial-user');
+const VError = require('verror').VError;
+const errorLog = require('debug')('errors');
+
+const DEFAULT_TTL = 1209600; // 2 weeks in seconds
+const DEFAULT_SALT_ROUNDS = 10;
+const DEFAULT_TOKEN_LEN = 64;
 
 /*
 	users schema:
@@ -50,6 +55,11 @@ module.exports = function (app, db, authUserMiddleware) {
 			'community': params.community,
 			'created': new Date()
 		}, function (err, user) {
+			if (err) {
+				var e = new VError(err, 'Could not create user');
+				errorLog(e.message);
+				return done(e);
+			}
 			done(err, user);
 		});
 	}
@@ -63,6 +73,11 @@ module.exports = function (app, db, authUserMiddleware) {
 			'lastaccess': new Date(),
 			'created': new Date()
 		}, function (err, user) {
+			if (err) {
+				var e = new VError(err, 'Could not create token');
+				errorLog(e.message);
+				return done(e);
+			}
 			done(err, user);
 		});
 	}
@@ -78,101 +93,47 @@ module.exports = function (app, db, authUserMiddleware) {
 
 	// create a new user
 	router.post('/register',
-		validate.check('email').isEmail(),
 
-		validate.check('password').isLength({
+		check('email').isEmail(),
+
+		check('name').not().isEmpty().trim().withMessage('name is required'),
+		check('username').not().isEmpty().trim().withMessage('username is required'),
+		check('community').optional().isBoolean().withMessage('community is boolean'),
+
+		check('password').custom(value => !/\s/.test(value)).withMessage('No spaces are allowed in the password'),
+
+		check('password').isLength({
 			min: 8
-		}).withMessage('password must be at least 8 characters')
-		.matches('[0-9]').withMessage('password must contain a number')
+		}).withMessage('password must be at least 8 characters').matches('[0-9]')
 		.matches('[a-z]').withMessage('password must have at least one lowercase character')
-		.matches('[A-Z]').withMessage('password must have at least one uppercase character'),
+		.matches('[A-Z]').withMessage('password must have at least one uppercase character')
+		.withMessage('password must contain a number'),
 
 		function (req, res) {
 
 			debug('/register', req.body);
 
-			var errors = validate.validationResult(req);
+			var errors = validationResult(req);
 			if (!errors.isEmpty()) {
-				console.log(errors.array());
-				return res.status(422).json({
-					errors: errors.array()
-				});
+				return res.status(422)
+					.json({
+						errors: errors.array()
+					});
 			}
 
 			createUser(req.body, function (err, user) {
 				if (err) {
-					return res.status(500).json(err);
+					return res.status(500).send(err.message);
 				}
 
 				createToken(user, function (err, token) {
 					res.cookie('access-token', token.token, {
-						'path': '/',
-						'maxAge': token.ttl,
-						'httpOnly': true,
-						'signed': true
-					}).send({
-						'status': 'ok',
-						'result': {
-							'id': user.id,
-							'name': user.name,
-							'username': user.username,
-							'email': user.email
-						}
-					});
-				});
-			});
-		}
-	);
-
-	// login
-	router.post('/login',
-		validate.check('email').isEmail(),
-
-		validate.check('password').isLength({
-			min: 8
-		}).withMessage('password must be at least 8 characters')
-		.matches('[0-9]').withMessage('password must contain a number')
-		.matches('[a-z]').withMessage('password must have at least one lowercase character')
-		.matches('[A-Z]').withMessage('password must have at least one uppercase character'),
-
-		function (req, res) {
-			db.getInstances('users', [{
-				'property': 'email',
-				'value': req.body.email
-			}], function (err, userInstances) {
-				if (err) {
-					return res.status(500).json({
-						'status': err
-					});
-				}
-
-				if (!userInstances || userInstances.length !== 1) {
-					return res.status(401).json({
-						'status': 'user not found'
-					});
-				}
-
-				var user = userInstances[0];
-
-				passwordMatch(req.body.password, user, function (err, isMatch) {
-					if (err) {
-						return res.status(500).json({
-							'status': 'password match error ' + err
-						});
-					}
-					if (!isMatch) {
-						return res.status(401).json({
-							'status': 'password mismatch'
-						});
-					}
-
-					createToken(user, function (err, token) {
-						res.cookie('access-token', token.token, {
 							'path': '/',
 							'maxAge': token.ttl,
 							'httpOnly': true,
 							'signed': true
-						}).send({
+						})
+						.send({
 							'status': 'ok',
 							'result': {
 								'id': user.id,
@@ -181,6 +142,79 @@ module.exports = function (app, db, authUserMiddleware) {
 								'email': user.email
 							}
 						});
+				});
+			});
+		}
+	);
+
+	// login
+	router.post('/login',
+		check('email').isEmail(),
+
+		check('password').custom(value => !/\s/.test(value)).withMessage('No spaces are allowed in the password'),
+
+		check('password')
+		.isLength({
+			min: 8
+		}).withMessage('password must be at least 8 characters')
+		.matches('[0-9]').withMessage('password must contain a number')
+		.matches('[a-z]').withMessage('password must have at least one lowercase character')
+		.matches('[A-Z]').withMessage('password must have at least one uppercase character'),
+
+		function (req, res) {
+
+			var errors = validationResult(req);
+			if (!errors.isEmpty()) {
+				return res.status(422)
+					.json({
+						errors: errors.array()
+					});
+			}
+
+			db.getInstances('users', [{
+				'property': 'email',
+				'value': req.body.email
+			}], function (err, userInstances) {
+				if (err) {
+					return res.status(500).send(err.message);
+				}
+
+				if (!userInstances || userInstances.length !== 1) {
+					return res.status(401)
+						.json({
+							'status': 'user not found'
+						});
+				}
+
+				var user = userInstances[0];
+
+				passwordMatch(req.body.password, user, function (err, isMatch) {
+					if (err) {
+						return res.status(500).send(err.message);
+					}
+					if (!isMatch) {
+						return res.status(401)
+							.json({
+								'status': 'password mismatch'
+							});
+					}
+
+					createToken(user, function (err, token) {
+						res.cookie('access-token', token.token, {
+								'path': '/',
+								'maxAge': token.ttl,
+								'httpOnly': true,
+								'signed': true
+							})
+							.send({
+								'status': 'ok',
+								'result': {
+									'id': user.id,
+									'name': user.name,
+									'username': user.username,
+									'email': user.email
+								}
+							});
 					});
 				});
 			});
@@ -190,9 +224,10 @@ module.exports = function (app, db, authUserMiddleware) {
 	router.get('/logout', getAuthUser, function (req, res) {
 		var currentUser = req.antisocialUser;
 		if (!currentUser) {
-			return res.status(401).json({
-				'status': 'must be logged in'
-			});
+			return res.status(401)
+				.json({
+					'status': 'must be logged in'
+				});
 		}
 
 		db.deleteInstance('tokens', req.antisocialToken.id, function (err) {

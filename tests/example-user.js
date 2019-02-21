@@ -42,6 +42,21 @@ describe('friends', function () {
 		}, 1000);
 	});
 
+	it('should not be able to post invalid register payload', function (done) {
+		client1.post('http://127.0.0.1:3000/api/users/register')
+			.type('form')
+			.send({
+				'password': 'test with spaces'
+			})
+			.end(function (err, res) {
+				expect(res.status).to.equal(422);
+				expect(res.body.errors).to.be.an('array');
+				//console.log(res.body.errors);
+				done();
+			});
+	});
+
+
 	it('should be able to create account 1', function (done) {
 		client1.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')

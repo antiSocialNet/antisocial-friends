@@ -1,13 +1,21 @@
-var events = require('events');
-var util = require('util');
-var uuid = require('uuid');
-var mysql = require('mysql');
-var debug = require('debug')('antisocial-db');
-var VError = require('verror').VError;
-var moment = require('moment');
+const events = require('events');
+const util = require('util');
+const uuid = require('uuid/v4');
+const mysql = require('mysql');
+const debug = require('debug')('antisocial-db');
+const errorLog = require('debug')('errors');
 
-// Example MYSQL database adaptor for persistant storage of users and friends
-// adapt these abstract methods to your application data storage scheme
+const VError = require('verror').VError;
+const moment = require('moment');
+
+/*
+	Example MYSQL database adaptor for persistant storage of antisocial data
+	adapt these abstract methods to your application data storage scheme
+
+
+DROP TABLE users; CREATE TABLE users (id VARCHAR(36), name VARCHAR(80), username VARCHAR(80), email VARCHAR(80), password VARCHAR(80), community CHAR(1), created DATETIME, PRIMARY KEY (id), UNIQUE KEY(username,email)) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_general_ci;
+DROP TABLE tokens; CREATE TABLE tokens (id VARCHAR(36), userId VARCHAR(80), token VARCHAR(64), ttl INT, created DATETIME, lastaccess DATETIME, community char(1), primary key (id), UNIQUE KEY(token)) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_general_ci;
+*/
 
 function dbHandler(options) {
 	events.EventEmitter.call(this);
@@ -18,10 +26,21 @@ function dbHandler(options) {
 
 	var self = this;
 
-	/*
-	DROP TABLE users; CREATE TABLE users (id VARCHAR(36), name VARCHAR(80), username VARCHAR(80), email VARCHAR(80), password VARCHAR(80), community CHAR(1), created DATETIME, PRIMARY KEY (id)) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_general_ci;
-	DROP TABLE tokens; CREATE TABLE tokens (id VARCHAR(36), userId VARCHAR(80), token VARCHAR(64), ttl INT, created DATETIME, lastaccess DATETIME, community char(1), primary key (id)) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_general_ci;
-	*/
+	this.tableDefs = {};
+
+	this.defineTable = function (collectionName, schema) {
+		self.tableDefs[collectionName] = schema;
+	};
+
+	this.getCreateTable = function (collectionName) {
+		var schema = self.tableDefs[collectionName];
+
+		var sql = 'CREATE TABLE ' + collectionName + '()';
+		var cols = [];
+		for (var col in schema) {
+			var columnDef = schema[col];
+		}
+	};
 
 	this.typemap = {
 		'users.created': 'datetime',
@@ -30,7 +49,7 @@ function dbHandler(options) {
 	};
 
 	this.createPool = function (options) {
-		debug('createPool %j', options);
+		debug('createPool %s %s', options.host, options.db);
 		self.pool = mysql.createPool({
 			connectionLimit: 100,
 			host: options.host,
@@ -45,13 +64,14 @@ function dbHandler(options) {
 	this.createPool(options);
 
 	this.queryDB = function (sql, args, done) {
-		debug('queryDB ', sql, args);
+		debug('queryDB %s %j', sql, args);
 		self.pool.query(sql, args, function (err, rows) {
 			if (err) {
-				debug(err);
-				return done(new VError(err, 'queryDB error'));
+				var e = new VError(err, 'queryDB error');
+				errorLog(e.message);
+				return done(e);
 			}
-			debug('rows: %j', rows);
+			debug('rows: %j', rows.length);
 			done(null, rows);
 		});
 	};
@@ -77,8 +97,9 @@ function dbHandler(options) {
 		var sql = 'INSERT INTO ' + collectionName + '(' + cols.join(',') + ') values(' + placeholders.join(',') + ')';
 		self.queryDB(sql, vals, function (err, result) {
 			if (err) {
-				debug(err);
-				return cb(new VError(err, 'newInstance error'));
+				var e = new VError(err, 'newInstance error');
+				errorLog(e.message);
+				return cb(e);
 			}
 			self.emit('create-' + collectionName, data);
 			cb(null, data);
@@ -104,8 +125,9 @@ function dbHandler(options) {
 
 		self.queryDB(sql, vals, function (err, result) {
 			if (err) {
-				debug(err);
-				return cb(new VError(err, 'newInstance error'));
+				var e = new VError(err, 'newInstance error');
+				errorLog(e.message);
+				return cb(e);
 			}
 			cb(null, result);
 		});
@@ -127,7 +149,9 @@ function dbHandler(options) {
 		var sql = 'UPDATE ' + collectionName + ' SET (' + clauses.join(',') + ') WHERE id = ?;';
 		self.queryDB(sql, vals, function (err, result) {
 			if (err) {
-				return cb(new VError(err, 'newInstance error'));
+				var e = new VError(err, 'newInstance error');
+				errorLog(e.message);
+				return cb(e);
 			}
 			self.emit('update-' + collectionName, result[0]);
 			cb(null, result[0]);
@@ -139,25 +163,27 @@ function dbHandler(options) {
 		var sql = 'SELECT * from ' + collectionName + ' WHERE id = ?;';
 		self.queryDB(sql, [id], function (err, results) {
 			if (err) {
-				return cb(new VError(err, 'deleteInstance error'));
+				var e = new VError(err, 'deleteInstance error');
+				errorLog(e.message);
+				return cb(e);
 			}
 
 			if (!results || !results.length) {
-				return cb(new VError(err, 'deleteInstance not found %s %s', collectionName, id));
+				return cb(new VError(err, 'deleteInstance id not found %s %s', collectionName, id));
 			}
 			var item = results[0];
 
 			var sql = 'DELETE from ' + collectionName + ' WHERE id = ?;';
 			self.queryDB(sql, [id], function (err, result) {
 				if (err) {
-					return cb(new VError(err, 'newInstance error'));
+					var e = new VError(err, 'newInstance error');
+					errorLog(e.message);
+					return cb(e);
 				}
 				self.emit('delete-' + collectionName, item);
 				cb(null, result[0]);
 			});
 		});
-
-
 	};
 }
 
