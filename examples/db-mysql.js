@@ -1,56 +1,29 @@
-const events = require('events');
-const util = require('util');
 const uuid = require('uuid/v4');
 const mysql = require('mysql');
 const debug = require('debug')('antisocial-db');
 const errorLog = require('debug')('errors');
-
 const VError = require('verror').VError;
 const moment = require('moment');
 
 /*
-	Example MYSQL database adaptor for persistant storage of antisocial data
-	adapt these abstract methods to your application data storage scheme
-
-
-DROP TABLE users; CREATE TABLE users (id VARCHAR(36), name VARCHAR(80), username VARCHAR(80), email VARCHAR(80), password VARCHAR(80), community CHAR(1), created DATETIME, PRIMARY KEY (id), UNIQUE KEY(username,email)) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_general_ci;
-DROP TABLE tokens; CREATE TABLE tokens (id VARCHAR(36), userId VARCHAR(80), token VARCHAR(64), ttl INT, created DATETIME, lastaccess DATETIME, community char(1), primary key (id), UNIQUE KEY(token)) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_general_ci;
+	Example MYSQL database adaptor for persistant storage of antisocial data.
 */
 
-function dbHandler(options) {
-	events.EventEmitter.call(this);
+const EventEmitter = require('events');
 
-	debug('using mysql');
+class dbHandler extends EventEmitter {
 
-	this.options = options;
+	constructor(options) {
+		super();
+		this.options = options;
+		this.tableDefs = {};
+		this.createPool();
+	}
 
-	var self = this;
-
-	this.tableDefs = {};
-
-	this.defineTable = function (collectionName, schema) {
-		self.tableDefs[collectionName] = schema;
-	};
-
-	this.getCreateTable = function (collectionName) {
-		var schema = self.tableDefs[collectionName];
-
-		var sql = 'CREATE TABLE ' + collectionName + '()';
-		var cols = [];
-		for (var col in schema) {
-			var columnDef = schema[col];
-		}
-	};
-
-	this.typemap = {
-		'users.created': 'datetime',
-		'tokens.created': 'datetime',
-		'tokens.lastaccess': 'datetime'
-	};
-
-	this.createPool = function (options) {
+	createPool() {
+		var options = this.options;
 		debug('createPool %s %s', options.host, options.db);
-		self.pool = mysql.createPool({
+		this.pool = mysql.createPool({
 			connectionLimit: 100,
 			host: options.host,
 			user: options.user,
@@ -59,13 +32,54 @@ function dbHandler(options) {
 			debug: false,
 			charset: options.charset
 		});
-	};
+	}
 
-	this.createPool(options);
+	defineTable(collectionName, schema, opts) {
+		this.tableDefs[collectionName] = {
+			spec: schema,
+			options: opts
+		};
+	}
 
-	this.queryDB = function (sql, args, done) {
+	getCreateTable(collectionName) {
+		if (!this.tableDefs[collectionName]) {
+			errorLog('getCreateTable table not defined');
+			return;
+		}
+
+		var schema = this.tableDefs[collectionName];
+
+		var cols = [];
+		var indexSpec = [];
+
+		for (var col in schema.spec) {
+			var typespec = schema.spec[col].mySQLType;
+			if (schema.spec[col].mySQLOpts) {
+				for (var i = 0; i < schema.spec[col].mySQLOpts.length; i++) {
+					var option = schema.spec[col].mySQLOpts[i];
+					if (option === 'PRIMARY KEY') {
+						indexSpec.push(option + ' ' + '(`' + col + '`)');
+					}
+					else if (option === 'UNIQUE KEY') {
+						indexSpec.push(option + ' `' + col + '` ' + '(`' + col + '`)');
+					}
+					else {
+						typespec += ' ' + option;
+					}
+				}
+			}
+
+			cols.push('`' + col + '`' + ' ' + typespec);
+		}
+
+		var sql = 'DROP TABLE ' + collectionName + ';CREATE TABLE `' + collectionName + '` (' + cols.join(',') + ',' + indexSpec.join(',') + ') ' + schema.options.join(' ');
+
+		return sql;
+	}
+
+	queryDB(sql, args, done) {
 		debug('queryDB %s %j', sql, args);
-		self.pool.query(sql, args, function (err, rows) {
+		this.pool.query(sql, args, function (err, rows) {
 			if (err) {
 				var e = new VError(err, 'queryDB error');
 				errorLog(e.message);
@@ -74,28 +88,69 @@ function dbHandler(options) {
 			debug('rows: %j', rows.length);
 			done(null, rows);
 		});
-	};
+	}
 
-	// store an item after assigning an unique id
-	this.newInstance = function (collectionName, data, cb) {
-		data.id = uuid();
+	/*
+		do type coersion from javascript representation to mysql (dates)
 
-		var cols = [];
+		data expects an object { col: val, col: val }
+	*/
+
+	encodeTypes(collectionName, data) {
+		var schema = this.tableDefs[collectionName];
 		var vals = [];
-		var placeholders = [];
-
 		for (var col in data) {
+			var typespec = schema.spec[col].mySQLType;
 			var val = data[col];
-			if (self.typemap[collectionName + '.' + col] === 'datetime') {
+			if (typespec.match(/^DATETIME/)) {
 				val = moment(val).format('YYYY-MM-DD HH:mm:ss');
+				debug('encodeTypes %s %s', col, val);
 			}
-
-			cols.push(col);
-			placeholders.push('?');
 			vals.push(val);
 		}
+		return vals;
+	}
+
+	/*
+		do type coersion from mysql representation to javascript  (dates)
+
+		rows expects an array of rowdata (from a select)
+		rows [
+			{ col: val, col: val },
+			{ col: val, col: val }
+		]
+	*/
+	decodeTypes(collectionName, rows) {
+		var schema = this.tableDefs[collectionName];
+		for (var i = 0; i < rows.length; i++) {
+			for (var col in rows[i]) {
+				var typespec = schema.spec[col].mySQLType;
+				var val = rows[i][col];
+				if (typespec.match(/^DATETIME/)) {
+					val = moment(val, 'YYYY-MM-DD HH:mm:ss').toDate();
+					debug('decodeTypes %s %j', col, val);
+				}
+				rows[i][col] = val;
+			}
+		}
+	}
+
+	// store an item after assigning an unique id
+	newInstance(collectionName, data, cb) {
+		data.id = uuid();
+
+		var vals = this.encodeTypes(collectionName, data);
+		var placeholders = [];
+		var cols = [];
+		for (var col in data) {
+			cols.push(col);
+			placeholders.push('?');
+		}
 		var sql = 'INSERT INTO ' + collectionName + '(' + cols.join(',') + ') values(' + placeholders.join(',') + ')';
-		self.queryDB(sql, vals, function (err, result) {
+
+		var self = this;
+
+		this.queryDB(sql, vals, function (err, result) {
 			if (err) {
 				var e = new VError(err, 'newInstance error');
 				errorLog(e.message);
@@ -104,50 +159,57 @@ function dbHandler(options) {
 			self.emit('create-' + collectionName, data);
 			cb(null, data);
 		});
-	};
+	}
 
-	// get an item by matching some property
-	this.getInstances = function (collectionName, pairs, cb) {
+	/*
+	// get an item
+	// expects pairs to be an array of { property: column name, value: value to find }
+	// pairs are anded
+	*/
+	getInstances(collectionName, pairs, cb) {
 
 		var clauses = [];
-		var vals = [];
+		var data = {};
 		for (var i = 0; i < pairs.length; i++) {
 			var col = pairs[i].property;
 			var val = pairs[i].value;
-			if (self.typemap[collectionName + '.' + col] === 'datetime') {
-				val = moment(val).format('YYYY-MM-DD HH:mm:ss');
-			}
-			vals.push(val);
+			data[col] = val;
 			clauses.push(col + ' = ?');
 		}
 
+		var vals = this.encodeTypes(collectionName, data);
+
 		var sql = 'SELECT * FROM ' + collectionName + ' WHERE ' + clauses.join(' AND ');
 
-		self.queryDB(sql, vals, function (err, result) {
+		var self = this;
+		this.queryDB(sql, vals, function (err, result) {
 			if (err) {
 				var e = new VError(err, 'newInstance error');
 				errorLog(e.message);
 				return cb(e);
 			}
+
+			self.decodeTypes(collectionName, result);
 			cb(null, result);
 		});
-	};
+	}
 
 	// update item properties by id
-	this.updateInstance = function (collectionName, id, patch, cb) {
+	updateInstance(collectionName, id, patch, cb) {
 		var clauses = [];
-		var vals = [];
+
+		var vals = this.encodeTypes(collectionName, patch);
+
 		for (var col in patch) {
-			var val = patch[col];
-			if (self.typemap[collectionName + '.' + col] === 'datetime') {
-				val = moment(val).format('YYYY-MM-DD HH:mm:ss');
-			}
 			clauses.push(col + ' = ?');
-			vals.push(val);
 		}
+
 		vals.push(id);
+
 		var sql = 'UPDATE ' + collectionName + ' SET (' + clauses.join(',') + ') WHERE id = ?;';
-		self.queryDB(sql, vals, function (err, result) {
+
+		var self = this;
+		this.queryDB(sql, vals, function (err, result) {
 			if (err) {
 				var e = new VError(err, 'newInstance error');
 				errorLog(e.message);
@@ -156,12 +218,14 @@ function dbHandler(options) {
 			self.emit('update-' + collectionName, result[0]);
 			cb(null, result[0]);
 		});
-	};
+	}
 
-	this.deleteInstance = function (collectionName, id, cb) {
+	deleteInstance(collectionName, id, cb) {
 
 		var sql = 'SELECT * from ' + collectionName + ' WHERE id = ?;';
-		self.queryDB(sql, [id], function (err, results) {
+
+		var self = this;
+		this.queryDB(sql, [id], function (err, results) {
 			if (err) {
 				var e = new VError(err, 'deleteInstance error');
 				errorLog(e.message);
@@ -174,6 +238,7 @@ function dbHandler(options) {
 			var item = results[0];
 
 			var sql = 'DELETE from ' + collectionName + ' WHERE id = ?;';
+
 			self.queryDB(sql, [id], function (err, result) {
 				if (err) {
 					var e = new VError(err, 'newInstance error');
@@ -184,9 +249,7 @@ function dbHandler(options) {
 				cb(null, result[0]);
 			});
 		});
-	};
+	}
 }
-
-util.inherits(dbHandler, events.EventEmitter);
 
 module.exports = dbHandler;

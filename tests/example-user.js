@@ -82,6 +82,7 @@ describe('friends', function () {
 	it('should be able to logout', function (done) {
 		client1.get('http://127.0.0.1:3000/api/users/logout')
 			.end(function (err, res) {
+				console.log(res.body);
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
 				expect(res.body.status).to.equal('ok');

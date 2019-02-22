@@ -4,7 +4,6 @@
 
 var express = require('express');
 var cookieParser = require('cookie-parser');
-var uuid = require('uuid');
 var app = express();
 
 app.use(express.json());
@@ -43,50 +42,85 @@ var mysql = new MYSQLdbHandler({
   password: 'testpassword',
   db: 'testdb',
   charset: 'utf8',
-  collation: 'utf8_general_ci'
 });
+
+mysql.on('ready', () => console.log('mysql ready'));
 
 mysql.defineTable('users', {
   'id': {
     type: 'string',
     mySQLType: 'VARCHAR(36)',
-    mySQLOpts: ['primary key']
-  }
-}, {
+    mySQLOpts: ['NOT NULL', 'PRIMARY KEY']
+  },
   'name': {
     type: 'string',
-    mySQLType: 'VARCHAR(80)'
-  }
-}, {
+    mySQLType: 'VARCHAR(80)',
+    mySQLOpts: ['NOT NULL']
+  },
   'username': {
     type: 'string',
     mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['unique key']
-  }
-}, {
+    mySQLOpts: ['NOT NULL', 'UNIQUE KEY']
+  },
   'email': {
     type: 'string',
     mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['unique key']
-  }
-}, {
+    mySQLOpts: ['NOT NULL', 'UNIQUE KEY']
+  },
   'password': {
     type: 'string',
-    mySQLType: 'VARCHAR(80)'
-  }
-}, {
+    mySQLType: 'VARCHAR(80)',
+    mySQLOpts: ['NOT NULL']
+  },
   'community': {
     type: 'string',
-    mySQLType: 'CHAR(1)'
-  }
-}, {
+    mySQLType: 'CHAR(1) DEFAULT NULL'
+  },
   'created': {
     type: 'datetime',
-    mySQLType: 'DATETIME'
+    mySQLType: 'DATETIME DEFAULT NULL'
   }
-});
+}, [
+  'ENGINE=InnoDB',
+  'DEFAULT CHARSET=utf8'
+]);
 
-mysql.defineTable('tokens', {});
+mysql.defineTable('tokens', {
+  'id': {
+    type: 'string',
+    mySQLType: 'VARCHAR(36)',
+    mySQLOpts: ['NOT NULL', 'PRIMARY KEY']
+  },
+  'userId': {
+    type: 'string',
+    mySQLType: 'VARCHAR(80)',
+    mySQLOpts: ['NOT NULL']
+  },
+  'token': {
+    type: 'string',
+    mySQLType: 'VARCHAR(64)',
+    mySQLOpts: ['NOT NULL', 'UNIQUE KEY']
+  },
+  'ttl': {
+    type: 'string',
+    mySQLType: 'int',
+    mySQLOpts: ['NOT NULL']
+  },
+  'created': {
+    type: 'datetime',
+    mySQLType: 'DATETIME DEFAULT NULL'
+  },
+  'lastaccess': {
+    type: 'datetime',
+    mySQLType: 'DATETIME DEFAULT NULL'
+  }
+}, [
+  'ENGINE=InnoDB',
+  'DEFAULT CHARSET=utf8'
+]);
+
+console.log(mysql.getCreateTable('users'));
+console.log(mysql.getCreateTable('tokens'));
 
 var userAPI = require('./examples/api-reg-users')(express, mysql, getAuthenticatedUser);
 app.use('/api/users', userAPI);
