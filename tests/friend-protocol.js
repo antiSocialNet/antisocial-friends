@@ -39,8 +39,8 @@ describe('friends', function () {
 
 	after(function (done) {
 		setTimeout(function () {
-			console.log('users: %j', app.db.collections.users);
-			console.log('invitations: %j', app.db.collections.invitations);
+			//console.log('users: %j', app.db.collections.users);
+			//console.log('invitations: %j', app.db.collections.invitations);
 			//console.log('friends: %j', app.db.collections.friends);
 			//console.log('blocks: %j', app.db.collections.blocks);
 			//console.log('postIdMap: %j highwaterMap: %j', app.postIdMap, app.highwaterMap);
@@ -74,7 +74,7 @@ describe('friends', function () {
 			.send({
 				'name': 'user two',
 				'username': 'user-two',
-				'email': 'test-1@myantisocial.net',
+				'email': 'test-2@myantisocial.net',
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
@@ -94,7 +94,7 @@ describe('friends', function () {
 			.send({
 				'name': 'user three',
 				'username': 'user-three',
-				'email': 'test-1@myantisocial.net',
+				'email': 'test-3@myantisocial.net',
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
@@ -113,7 +113,7 @@ describe('friends', function () {
 			.send({
 				'name': 'user four',
 				'username': 'user-four',
-				'email': 'test-1@myantisocial.net',
+				'email': 'test-4@myantisocial.net',
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
@@ -132,7 +132,7 @@ describe('friends', function () {
 			.send({
 				'name': 'test community',
 				'username': 'test-community',
-				'email': 'test-1@myantisocial.net',
+				'email': 'test-5@myantisocial.net',
 				'password': 'Testing123',
 				'community': true,
 			})
@@ -355,15 +355,13 @@ describe('friends', function () {
 	it('user1 should be able disconnect', function (done) {
 		//wait 2 seconds then disconnect
 		setTimeout(function () {
-			app.db.getInstances('users', [{
-				'property': 'username',
-				'value': 'user-one'
-			}], function (err, instances) {
+			app.db.getInstances('users', {
+				'username': 'user-one'
+			}, function (err, instances) {
 				user = instances[0];
-				app.db.getInstances('friends', [{
-					'property': 'userId',
-					'value': user.id
-				}], function (err, instances) {
+				app.db.getInstances('friends', {
+					'userId': user.id
+				}, function (err, instances) {
 					friend = instances[0];
 
 					app.antisocial.activityFeed.disconnect(user, friend, function (err) {

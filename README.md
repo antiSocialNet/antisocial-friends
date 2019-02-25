@@ -6,7 +6,7 @@ Building blocks for myAntiSocial.net
 
 ## antisocial-friends protocol overview
 
-This module mounts routes for any expressjs application wishing to support building and maintaining antisocial 'friend' relationships whether on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keys for later use in exchanging user to user encrypted messages over socket.io connections.
+This module mounts routes for any expressjs application wishing to support building and maintaining antisocial 'friend' relationships whether on the same server/application and/or across distributed servers and applications. The protocol generates key pairs unique to the friend relationship and exchanges public keypair for later use in exchanging user to user encrypted messages over socket.io connections.
 
 Once a friend request is accepted, each side of the friend relationship can transmit activity messages using the 'emitter' function that is handed to the application in the `open-activity-connection` event.
 
@@ -14,7 +14,7 @@ Once a friend request is accepted, each side of the friend relationship can tran
 antisocialApp.on('open-activity-connection', function (user, friend, emitter, info) {}
 ```
 
-The emitter is a private channel for transmitting message from the user to the friend. The emitter takes an `appId` parameter which is an identifier for the class of message (eg. IM, Post, Photo etc.) Your app should subscribe to data events for each appId you need to handle. The message is user to user encrypted for transmission over the internet using the keys that were exchanged in the friend protocol.
+The emitter is a private channel for transmitting message from the user to the friend. The emitter takes an `appId` parameter which is an identifier for the class of message (eg. IM, Post, Photo etc.) Your app should subscribe to data events for each appId you need to handle. The message is user to user encrypted for transmission over the internet using the keypair that were exchanged in the friend protocol.
 ```
 emitter('myappid','data',{'hello':'world'});
 ```
@@ -307,10 +307,10 @@ function dbHandler() {
   // get an item by matching some properties.
   // pairs are a list of property/value pairs that are anded
   // when querying the database example:
-  // [
-  //   { 'property':'userId', 'value': 1 },
-  //   { 'property':'localAccessToken', 'value': 'jhgasdfjhgsdfjhg' }
-  // ]
+  //
+  //   { 'userId': 1 },
+  //   { 'localAccessToken': 'jhgasdfjhgsdfjhg' }
+  //
   this.getInstances = function (collectionName, pairs, cb) {
     var query = {
       'where': {
@@ -318,9 +318,8 @@ function dbHandler() {
       }
     };
 
-    for (var i = 0; i < pairs.length; i++) {
-      var prop = pairs[i].property;
-      var value = pairs[i].value;
+    for (var prop in pairs) {
+      var value = pairs[prop];
       var pair = {};
       pair[prop] = value;
       query.where.and.push(pair);
@@ -411,7 +410,7 @@ The result of a friend request and a friend accept is 2 friends records, one own
     "remoteHost": "http://127.0.0.1:3000",
     "localRequestToken": "cbf875ad-5eb7-43e4-8028-415ddf6d95a9",
     "localAccessToken": "fbb8d3be-b199-45a6-b46e-3bcbbfedd0aa",
-    "keys": {
+    "keypair": {
       "public": "-----BEGIN PUBLIC KEY-----\r\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3BotZWYZu/rtFqTOHpdzM9+b2m7c\r\n7I2CtkZrnJ5zPQzmXDg9gLWqImAFrqcR3Ee3LMLniuKsFSYz2I/ERmXiXzv2e8wr14AeuXOV\r\nFzqcsDypKrbtT88lZLor6bt0kQOP7pFcesOedocoU9/DpnRkOYeI9MHsZN1pyZVvzLfkHvdL\r\n08ktiWwjNoFV8EL2h13sVZIFt/GaoPrv/SeWzb9oyAGAcp671smBsExCsafgwXAKYBQHIzrI\r\nScxNBzP2d9/z1ZKQ/dtXbGvWheZ0Ci1G6ngYSdx8APBIRFK+hhRdnhhpbat5juWoMs2dTG8q\r\nWIu45ntjfg7BHLRLExRE6un5lwIDAQAB\r\n-----END PUBLIC KEY-----\r\n",
       "private": "-----BEGIN RSA PRIVATE KEY-----\r\nMIIEowIBAAKCAQEA3BotZWYZu/rtFqTOHpdzM9+b2m7c7I2CtkZrnJ5zPQzmXDg9gLWqImAF\r\nrqcR3Ee3LMLniuKsFSYz2I/ERmXiXzv2e8wr14AeuXOVFzqcsDypKrbtT88lZLor6bt0kQOP\r\n7pFcesOedocoU9/DpnRkOYeI9MHsZN1pyZVvzLfkHvdL08ktiWwjNoFV8EL2h13sVZIFt/Ga\r\noPrv/SeWzb9oyAGAcp671smBsExCsafgwXAKYBQHIzrIScxNBzP2d9/z1ZKQ/dtXbGvWheZ0\r\nCi1G6ngYSdx8APBIRFK+hhRdnhhpbat5juWoMs2dTG8qWIu45ntjfg7BHLRLExRE6un5lwID\r\nAQABAoIBAEUvFUXiKgSkgxGzC/chs9yCVQL8BgV1FbkluX2pcJ+oBmDGbM6gS7IybJbRfRO4\r\nlyNCwHUvetfLAlD4H8HhFJ7Kwld3ffBnHUE9y4dZrRbYenQqu71yZ1aaDmORwLo0XHGoz2Dn\r\nTFAFe++hTmZr/3T13V7R9fRehHoQtuuqgdIZZAoshX90JpIhJ9Px6F1scgWgmBRH3XcsCbxb\r\nOMjABrVFINv5YUANRwUAwC2DYUBEuptRnEtm4X3++Afg97hK2brR9ofgpw44ej7JhovHeZti\r\n1Xm0AhqP/T6GQa55MS0rPryq5bbIjr/SBqJr4VkAmJJMx+P8KOa8gfBPefj9cgECgYEA+4Bz\r\ntT86OY/Pa+QJTSXZsskCqVlCQbj1V3CAt5dwXXir9NEwlE6yrc2jReqq07bDdqeadQUEwTaZ\r\nyioXxFozRNhs0rQPBoKLB0HuFqOm8GULcB0m3ScWJec5Rz9TCQQrMdUDQaZTLCXQs9izcVmd\r\nhBT1SLLZ3zjJt7hKVwafkqECgYEA4An08IkbEjwfcq7zOHNzh5Dm4G9jRW62vx5WFL+xktl6\r\nDg14IXMH7TVg2Gl96U40JZDBQW2bLH6pcGLp5UAj9ZqtoVW9BN+LZ3uY25hCEhYfAE0zVhhc\r\nE0VLkdyKp7wSQFicqAfPjryMsFTIgCrywo1BxxMibe773ai26YL32TcCgYEA2MOkdrGxGE2X\r\no9DeJ20ZDdvr/FPfJFAqvRtNBW9zvEw2QQJPkXOm0t/q+mbAp0rdexYHrRYPPAw4TqMq6uQn\r\nTg4O9SeVz7GR7EZp039ncchVLGMjzPZUQ4TfvEWa5ql+JSwH63xUMTfCgk+ikW6AsYdyxR7J\r\nY3hJe5xODmW6ASECgYBpPuQs9wublljjpCIn+7xjDAQZnNoSrP72a0be+mpt5PI8lcFAXWx0\r\n16WGJJB8wDspBoZyuQ2zalEotZ7RDj+WSjKU3tUr6+PuGhbl2fH30yJ/HsUmBc2DVAM7I1KT\r\nl3svdTEqknjDwfmJgFqsMwDVukwTO/7pi+IP8Aj1S4wpIwKBgDJwDd0eNPhMRf1wi+rfTefL\r\nb1lo/sSw0/vgyH2GKLnY+svw7p2k2GoPvbT7AEkUFDxh3HYbdKPx2hUO0rbkM94FyA8eSUU4\r\n+osMYDv8bIMwve7dfmRKl7vN2TWhkFhjREwPdFf6xbCV91BstV/qcCrOJJiXYmCrQODZ2qHJ\r\nvvOf\r\n-----END RSA PRIVATE KEY-----\r\n"
     },
@@ -433,7 +432,7 @@ The result of a friend request and a friend accept is 2 friends records, one own
     "remoteHost": "http://127.0.0.1:3000",
     "localRequestToken": "97e2a0b7-7a0d-46cb-8be6-4253b842067a",
     "localAccessToken": "aabaa39b-cb60-4f29-948f-8483bc29f21c",
-    "keys": {
+    "keypair": {
       "public": "-----BEGIN PUBLIC KEY-----\r\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAihLKPC8s1fIi4IR33n8iGA+VInab\r\niN0PzqiI7iPPJlfApwPIrxIVD+SvQXlMOOQNsh8sOADaiIH4w8FvG+3WvFrD/fkOcYl7Uk1t\r\nO5iMxC0McYU0b1zfplivqP9obaSkAWJkv3M2IRIpqJHuCJV/Gx3THFBdgTSqtSqrIJSG3Kjr\r\nNi7xHQPimi5LL9CZJFNbNmGyDly2WIWQM1k6EMgrIn6hR9OaElyAjx88YhJwFIDRS+dGNC2+\r\nu4rcK5YdLuezZGff84rPFWyZueMmEK16xb1P3fhDwFTU2KtmqCs47p7eaz2Mlw1ek1E9nlP+\r\nkmPuhWGF9pIUVbEg9co4IFgnFwIDAQAB\r\n-----END PUBLIC KEY-----\r\n",
       "private": "-----BEGIN RSA PRIVATE KEY-----\r\nMIIEowIBAAKCAQEAihLKPC8s1fIi4IR33n8iGA+VInabiN0PzqiI7iPPJlfApwPIrxIVD+Sv\r\nQXlMOOQNsh8sOADaiIH4w8FvG+3WvFrD/fkOcYl7Uk1tO5iMxC0McYU0b1zfplivqP9obaSk\r\nAWJkv3M2IRIpqJHuCJV/Gx3THFBdgTSqtSqrIJSG3KjrNi7xHQPimi5LL9CZJFNbNmGyDly2\r\nWIWQM1k6EMgrIn6hR9OaElyAjx88YhJwFIDRS+dGNC2+u4rcK5YdLuezZGff84rPFWyZueMm\r\nEK16xb1P3fhDwFTU2KtmqCs47p7eaz2Mlw1ek1E9nlP+kmPuhWGF9pIUVbEg9co4IFgnFwID\r\nAQABAoIBAD9wortEcbVbq+q88taoU2H6xusu1AfuinTJuyCwE13qs/oJIwxNop/K0zuiIAOD\r\nxUcyS37v5XkTPtmy5vpOLXwduC/ZX2mLYb5PFQFs9kCs8iq2qYEBi0FDPnLH55N5MmHwc5oD\r\ntbs8PSfW5SfMiLpM2dMIme3j5QuYr0go9k4sHcravEZWewc89ARRgvC5KnZ3Xo5bOBgq4C2W\r\nSEZF+5LzwG1pcNoNil5JFUXWmV9Kxzrv0N7KaaACxzkiACNL07viW/u5uZo2/f49OZ9gq2qk\r\nd5M5pwGC/uI3J5c7ipDq+Hlf1nzpn6AxwpRraUeLziF5+RG/3dgrNiCeQ6Ll3AECgYEA6yKZ\r\n/Tsj9TZXQeg/mQJ6PlYRqMqdnk6+rRu+37D0B7IfcE0nXKAH+sjWR66qwKm21MEj03pvr9+5\r\nHbE6YuKjq7B0UHBrGf0hyXxd3xMyaLbAmzunHUnmVcMAnavA0pTnubg7DsrL40TNHGiWZcoS\r\ntKd7zb4qnJ0bvHRuUA4u4qcCgYEAllNOKKauIV8C4HYKRgfDqWTJMTUbzva1RNKVRS8CpLkm\r\ntkY4Fskgy5dTq++zDNELfs5O6PGNj7jkLpkFi3XJrvLhIVkLH0wc5y8kfw/Btkf7mTo/PnG4\r\nw1M8P7/+YVj8+wnb/1JgQLt19aEU8dqjM38nmjHvXE/EVfxsvM4RVhECgYEApa+IGqxlthBI\r\nhCSHS+Y3BV3Yq7u6PSb3rTtz0GP8UL/u708ugVIyzUBf3bryjzgHoPtHp2kK8j8PTiDoJ23U\r\nLtLz4wqULYf1GukLrHj2eFrudXQfWcANEjmKYY/5G2nZr0BmPRIhgU+lyHLaJ3ewnqO11VA+\r\n7oS2WqEgakDUQNkCgYBGXO/0rzBKhoJ+NkJQzUmUfIx/7+/4TBpFAJzGKV7/Y3rvTqbqY3Jq\r\nWYbcr/ILSb4ruL3O42HzqAOGnDGwOY4RybX/OgKuv523yKU4pFNz0vW9nzoDLI/jPY6x+FhF\r\nkLW5e7/yHsjXA+gO9Tssib5iWF5dGoqDlwK7jNAJABu1QQKBgAOVsey9v/+GxLprhVuVIMjb\r\n+2fhh0fUfEtx9G1DplhW88AwAFHTSRfffT7VqJBSqcYHajnXDKz9mn3pC1ASyO0QnZxAy0YR\r\nyT7gsd4gOgUuk7IqOCLPNXg4TlTOTV9wsJyNQ6s+EbZqyIAhUzhr4ESEZ/qQLVpMKZ4eLDrp\r\ndx2J\r\n-----END RSA PRIVATE KEY-----\r\n"
     },

@@ -45,15 +45,16 @@ function dbHandler(options) {
 				var instance = self.collections[collectionName][item];
 
 				var match = 0;
-				for (var i = 0; i < pairs.length; i++) {
-					var prop = pairs[i].property;
-					var value = pairs[i].value;
+				var paircount = 0;
+				for (var prop in pairs) {
+					++paircount;
+					var value = pairs[prop];
 					if (instance[prop] === value) {
 						++match;
 					}
 				}
 
-				if (match == pairs.length) {
+				if (match == paircount) {
 					found.push(instance);
 				}
 			}

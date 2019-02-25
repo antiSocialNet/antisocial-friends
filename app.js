@@ -6,6 +6,8 @@ var express = require('express');
 var cookieParser = require('cookie-parser');
 var app = express();
 
+app.use(require('morgan')('dev'));
+
 app.use(express.json());
 app.use(express.urlencoded({
   extended: false
@@ -15,10 +17,28 @@ app.use(cookieParser('someSecretThisIs'));
 // mount the friend API under /antisocial
 var antisocial = require('./index');
 var imApp = require('./examples/im.js');
+var db;
 
-var dbHandler = require('./examples/db');
-var db = new dbHandler();
-var getAuthenticatedUser = require('./examples/getAuthenticatedUser')(db);
+if (!process.env.MYSQL) {
+  var dbHandler = require('./examples/db');
+  db = new dbHandler();
+}
+else {
+  var MYSQLdbHandler = require('./examples/db-mysql');
+
+  db = new MYSQLdbHandler({
+    host: 'localhost',
+    user: 'testuser',
+    password: 'testpassword',
+    db: 'testdb',
+    charset: 'utf8',
+  });
+
+  require('./lib/schema')(db);
+}
+
+app.db = db;
+
 
 db.on('create-friends', function (data) {
   console.log('db create event friends %s', data.id);
@@ -32,97 +52,10 @@ db.on('delete-friends', function (data) {
   console.log('db delete event friends %s', data.id);
 });
 
-app.db = db;
 
-var MYSQLdbHandler = require('./examples/db-mysql');
+var getAuthenticatedUser = require('./examples/getAuthenticatedUser')(db);
 
-var mysql = new MYSQLdbHandler({
-  host: 'localhost',
-  user: 'testuser',
-  password: 'testpassword',
-  db: 'testdb',
-  charset: 'utf8',
-});
-
-mysql.on('ready', () => console.log('mysql ready'));
-
-mysql.defineTable('users', {
-  'id': {
-    type: 'string',
-    mySQLType: 'VARCHAR(36)',
-    mySQLOpts: ['NOT NULL', 'PRIMARY KEY']
-  },
-  'name': {
-    type: 'string',
-    mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['NOT NULL']
-  },
-  'username': {
-    type: 'string',
-    mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['NOT NULL', 'UNIQUE KEY']
-  },
-  'email': {
-    type: 'string',
-    mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['NOT NULL', 'UNIQUE KEY']
-  },
-  'password': {
-    type: 'string',
-    mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['NOT NULL']
-  },
-  'community': {
-    type: 'string',
-    mySQLType: 'CHAR(1) DEFAULT NULL'
-  },
-  'created': {
-    type: 'datetime',
-    mySQLType: 'DATETIME DEFAULT NULL'
-  }
-}, [
-  'ENGINE=InnoDB',
-  'DEFAULT CHARSET=utf8'
-]);
-
-mysql.defineTable('tokens', {
-  'id': {
-    type: 'string',
-    mySQLType: 'VARCHAR(36)',
-    mySQLOpts: ['NOT NULL', 'PRIMARY KEY']
-  },
-  'userId': {
-    type: 'string',
-    mySQLType: 'VARCHAR(80)',
-    mySQLOpts: ['NOT NULL']
-  },
-  'token': {
-    type: 'string',
-    mySQLType: 'VARCHAR(64)',
-    mySQLOpts: ['NOT NULL', 'UNIQUE KEY']
-  },
-  'ttl': {
-    type: 'string',
-    mySQLType: 'int',
-    mySQLOpts: ['NOT NULL']
-  },
-  'created': {
-    type: 'datetime',
-    mySQLType: 'DATETIME DEFAULT NULL'
-  },
-  'lastaccess': {
-    type: 'datetime',
-    mySQLType: 'DATETIME DEFAULT NULL'
-  }
-}, [
-  'ENGINE=InnoDB',
-  'DEFAULT CHARSET=utf8'
-]);
-
-console.log(mysql.getCreateTable('users'));
-console.log(mysql.getCreateTable('tokens'));
-
-var userAPI = require('./examples/api-reg-users')(express, mysql, getAuthenticatedUser);
+var userAPI = require('./examples/api-reg-users')(express, db, getAuthenticatedUser);
 app.use('/api/users', userAPI);
 
 var router = express.Router();

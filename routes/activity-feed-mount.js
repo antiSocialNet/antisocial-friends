@@ -55,10 +55,9 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 			async.waterfall([
 				function getUser(cb) {
-					db.getInstances('users', [{
-						'property': 'username',
-						'value': data.username
-					}], function (err, userInstances) {
+					db.getInstances('users', {
+						'username': data.username
+					}, function (err, userInstances) {
 						if (err) {
 							return cb(new VError(err, 'user not found'));
 						}
@@ -77,13 +76,10 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					});
 				},
 				function findFriend(user, cb) {
-					db.getInstances('friends', [{
-						'property': 'userId',
-						'value': user.id
-					}, {
-						'property': 'localAccessToken',
-						'value': data.friendAccessToken
-					}], function (err, friendInstances) {
+					db.getInstances('friends', {
+						'userId': user.id,
+						'localAccessToken': data.friendAccessToken
+					}, function (err, friendInstances) {
 						if (err) {
 							return cb(new VError(err, 'error reading friends'));
 						}
@@ -141,7 +137,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 					};
 
 					debug('emitter (feed mount)', eventType, message);
-					message = cryptography.encrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, JSON.stringify(message));
+					message = cryptography.encrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keypair.private, JSON.stringify(message));
 					socket.emit(eventType, message);
 				});
 			};
@@ -153,7 +149,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 						return;
 					}
 
-					var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+					var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keypair.private, data);
 					if (!decrypted.valid) { // could not validate signature
 						console.log('WatchNewsFeedItem decryption signature validation error:', decrypted.invalidReason);
 						return;
@@ -185,7 +181,7 @@ module.exports = function activityFeedMount(antisocialApp, expressListener) {
 
 					debug('%s /antisocial-activity data from %s', socket.id, socket.antisocial.key);
 
-					var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keys.private, data);
+					var decrypted = cryptography.decrypt(socket.antisocial.friend.remotePublicKey, socket.antisocial.friend.keypair.private, data);
 					if (!decrypted.valid) { // could not validate signature
 						debug('%s /antisocial-activity decryption signature validation error:', socket.id, decrypted.invalidReason);
 						return;

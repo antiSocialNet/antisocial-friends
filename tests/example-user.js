@@ -34,9 +34,6 @@ describe('friends', function () {
 
 	after(function (done) {
 		setTimeout(function () {
-			console.log('users: %j', app.db.collections.users);
-			console.log('tokens: %j', app.db.collections.tokens);
-
 			app.stop();
 			done();
 		}, 1000);
@@ -51,7 +48,7 @@ describe('friends', function () {
 			.end(function (err, res) {
 				expect(res.status).to.equal(422);
 				expect(res.body.errors).to.be.an('array');
-				//console.log(res.body.errors);
+				console.log('errors: ', res.body.errors);
 				done();
 			});
 	});
@@ -67,6 +64,9 @@ describe('friends', function () {
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
+				if (err) {
+					console.log('errors: ', res.body.errors);
+				}
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
 				expect(res.body.status).to.equal('ok');
@@ -82,7 +82,9 @@ describe('friends', function () {
 	it('should be able to logout', function (done) {
 		client1.get('http://127.0.0.1:3000/api/users/logout')
 			.end(function (err, res) {
-				console.log(res.body);
+				if (err) {
+					console.log('errors: ', res.body.errors);
+				}
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
 				expect(res.body.status).to.equal('ok');
@@ -98,6 +100,9 @@ describe('friends', function () {
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
+				if (err) {
+					console.log('errors: ', res.body.errors);
+				}
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
 				expect(res.body.status).to.equal('ok');

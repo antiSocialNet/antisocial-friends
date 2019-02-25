@@ -8,6 +8,7 @@ var encryption = require('antisocial-encryption');
 var fixIfBehindProxy = require('../lib/utilities').fixIfBehindProxy;
 var url = require('url');
 var debug = require('debug')('antisocial-friends');
+const errorLog = require('debug')('errors');
 var VError = require('verror').VError;
 var WError = require('verror').WError;
 var async = require('async');
@@ -47,10 +48,9 @@ module.exports = function mountFriendRequest(antisocialApp) {
 		async.waterfall([
 			function getUser(cb) {
 				debug('/friend-request getUser');
-				db.getInstances('users', [{
-					'property': 'username',
-					'value': username
-				}], function (err, userInstances) {
+				db.getInstances('users', {
+					'username': username
+				}, function (err, userInstances) {
 					if (err) {
 						return cb(new VError(err, 'user not found'));
 					}
@@ -75,13 +75,10 @@ module.exports = function mountFriendRequest(antisocialApp) {
 				});
 			},
 			function checkBlocked(user, cb) {
-				db.getInstances('blocks', [{
-					'property': 'userId',
-					'value': user.id
-				}, {
-					'property': 'remoteEndPoint',
-					'value': req.body.remoteEndPoint
-				}], function (err, blockedInstances) {
+				db.getInstances('blocks', {
+					'userId': user.id,
+					'remoteEndPoint': req.body.remoteEndPoint
+				}, function (err, blockedInstances) {
 					if (err) {
 						return cb(new VError(err, 'error reading blocks'));
 					}
@@ -95,13 +92,10 @@ module.exports = function mountFriendRequest(antisocialApp) {
 			},
 			function checkDupeFriend(user, cb) {
 				debug('/friend-request checkDupeFriend');
-				db.getInstances('friends', [{
-					'property': 'userId',
-					'value': user.id
-				}, {
-					'property': 'remoteEndPoint',
-					'value': req.body.remoteEndPoint
-				}], function (err, friendInstances) {
+				db.getInstances('friends', {
+					'userId': user.id,
+					'remoteEndPoint': req.body.remoteEndPoint
+				}, function (err, friendInstances) {
 					if (err) {
 						return cb(new VError(err, 'error reading friends'));
 					}
@@ -130,13 +124,10 @@ module.exports = function mountFriendRequest(antisocialApp) {
 					});
 				}
 
-				db.getInstances('invitations', [{
-					'property': 'userId',
-					'value': user.id
-				}, {
-					'property': 'token',
-					'value': invite
-				}], function (err, invitations) {
+				db.getInstances('invitations', {
+					'userId': user.id,
+					'token': invite
+				}, function (err, invitations) {
 					if (err) {
 						var e = new VError(err, '/friend-request processInvite failed reading invitations');
 						return cb(e);
@@ -163,7 +154,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 					'remoteHost': remoteEndPoint.protocol + '//' + remoteEndPoint.host,
 					'localRequestToken': uuid(),
 					'localAccessToken': uuid(),
-					'keys': pair,
+					'keypair': pair,
 					'audiences': ['public'],
 					'hash': crc.crc32(req.body.remoteEndPoint).toString(16),
 					'userId': user.id,
@@ -190,7 +181,8 @@ module.exports = function mountFriendRequest(antisocialApp) {
 				var options = {
 					'url': fixIfBehindProxy(antisocialApp, friend.remoteEndPoint + '/exchange-token'),
 					'form': payload,
-					'json': true
+					'json': true,
+					'timeout': 20000
 				};
 
 				debug('/friend-request exchangeToken POST ', options);
@@ -217,10 +209,9 @@ module.exports = function mountFriendRequest(antisocialApp) {
 				});
 			},
 			function saveToken(user, friend, invitation, exchange, cb) {
-				db.getInstances('friends', [{
-					'property': 'userId',
-					'value': user.id
-				}], function (err, friends) {
+				db.getInstances('friends', {
+					'userId': user.id
+				}, function (err, friends) {
 					if (err) {
 						var e = new VError(err, '/friend-request createPendingFriend failed reading friends');
 						return cb(e, user, friend);
@@ -228,8 +219,7 @@ module.exports = function mountFriendRequest(antisocialApp) {
 
 					var unique = 0;
 					for (var i = 0; i < friends.length; i++) {
-						var friend = friends[i];
-						if (friend.remoteUsername === exchange.username) {
+						if (friends[i].remoteUsername === exchange.username) {
 							++unique;
 						}
 					}
@@ -248,11 +238,15 @@ module.exports = function mountFriendRequest(antisocialApp) {
 						update.audiences = ['public', 'friends'];
 					}
 
+					errorLog('/friend-request saveToken %s %j', friend.id, update);
+
 					db.updateInstance('friends', friend.id, update, function (err, friend) {
 						if (err) {
 							var e = new VError(err, '/friend-request saveToken error');
 							return cb(e, user, friend);
 						}
+
+						errorLog('/friend-request saveToken friend %j', friend);
 
 						cb(null, user, friend);
 					});
@@ -260,8 +254,8 @@ module.exports = function mountFriendRequest(antisocialApp) {
 			}
 		], function (err, user, friend) {
 			if (err) {
+				errorLog('/friend-request error %s', err.message);
 				var e = new WError(err, 'request-friend failed');
-				debug('friend-request error', e.cause().message);
 				res.send({
 					'status': 'error',
 					'reason': e.message,

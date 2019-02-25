@@ -13,28 +13,6 @@ const DEFAULT_TTL = 1209600; // 2 weeks in seconds
 const DEFAULT_SALT_ROUNDS = 10;
 const DEFAULT_TOKEN_LEN = 64;
 
-/*
-	users schema:
-	{
-		'name': String - Name of user,
-		'username': String - unique username,
-		'email': String - unique email address,
-		'password': String - salted hash,
-		'created': Date - date created,
-		'community': Boolean - true is account is an antisocial community, not a user
-	}
-
-	tokens schema:
-	{
-		'userId': String - id of user,
-		'token': String - unique id (guid),
-		'ttl': Integer - TTL in seconds since last access,
-		'lastaccess': Date - last access,
-		'created': Date - created
-	}
-
-*/
-
 module.exports = function (app, db, authUserMiddleware) {
 
 	debug('mounting user registration api');
@@ -100,11 +78,13 @@ module.exports = function (app, db, authUserMiddleware) {
 		check('username').not().isEmpty().trim().withMessage('username is required'),
 		check('community').optional().isBoolean().withMessage('community is boolean'),
 
-		check('password').custom(value => !/\s/.test(value)).withMessage('No spaces are allowed in the password'),
 
-		check('password').isLength({
+		check('password')
+		.custom(value => !/\s/.test(value)).withMessage('No spaces are allowed in the password')
+		.isLength({
 			min: 8
-		}).withMessage('password must be at least 8 characters').matches('[0-9]')
+		}).withMessage('password must be at least 8 characters')
+		.matches('[0-9]').withMessage('password must have at least one number')
 		.matches('[a-z]').withMessage('password must have at least one lowercase character')
 		.matches('[A-Z]').withMessage('password must have at least one uppercase character')
 		.withMessage('password must contain a number'),
@@ -117,13 +97,17 @@ module.exports = function (app, db, authUserMiddleware) {
 			if (!errors.isEmpty()) {
 				return res.status(422)
 					.json({
+						status: 'error',
 						errors: errors.array()
 					});
 			}
 
 			createUser(req.body, function (err, user) {
 				if (err) {
-					return res.status(500).send(err.message);
+					return res.status(400).json({
+						status: 'error',
+						'errors': err.message
+					});
 				}
 
 				createToken(user, function (err, token) {
@@ -133,7 +117,7 @@ module.exports = function (app, db, authUserMiddleware) {
 							'httpOnly': true,
 							'signed': true
 						})
-						.send({
+						.json({
 							'status': 'ok',
 							'result': {
 								'id': user.id,
@@ -151,9 +135,8 @@ module.exports = function (app, db, authUserMiddleware) {
 	router.post('/login',
 		check('email').isEmail(),
 
-		check('password').custom(value => !/\s/.test(value)).withMessage('No spaces are allowed in the password'),
-
 		check('password')
+		.custom(value => !/\s/.test(value)).withMessage('No spaces are allowed in the password')
 		.isLength({
 			min: 8
 		}).withMessage('password must be at least 8 characters')
@@ -167,16 +150,19 @@ module.exports = function (app, db, authUserMiddleware) {
 			if (!errors.isEmpty()) {
 				return res.status(422)
 					.json({
+						status: 'error',
 						errors: errors.array()
 					});
 			}
 
-			db.getInstances('users', [{
-				'property': 'email',
-				'value': req.body.email
-			}], function (err, userInstances) {
+			db.getInstances('users', {
+				'email': req.body.email
+			}, function (err, userInstances) {
 				if (err) {
-					return res.status(500).send(err.message);
+					return res.status(500).json({
+						status: 'error',
+						'errors': err.message
+					});
 				}
 
 				if (!userInstances || userInstances.length !== 1) {
@@ -192,10 +178,12 @@ module.exports = function (app, db, authUserMiddleware) {
 					if (err) {
 						return res.status(500).send(err.message);
 					}
+
 					if (!isMatch) {
 						return res.status(401)
 							.json({
-								'status': 'password mismatch'
+								'status': 'error',
+								'errors': 'password mismatch'
 							});
 					}
 
@@ -224,10 +212,10 @@ module.exports = function (app, db, authUserMiddleware) {
 	router.get('/logout', getAuthUser, function (req, res) {
 		var currentUser = req.antisocialUser;
 		if (!currentUser) {
-			return res.status(401)
-				.json({
-					'status': 'must be logged in'
-				});
+			return res.status(401).json({
+				'status': 'error',
+				'errors': 'must be logged in'
+			});
 		}
 
 		db.deleteInstance('tokens', req.antisocialToken.id, function (err) {

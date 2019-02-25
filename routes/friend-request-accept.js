@@ -4,6 +4,7 @@
 
 var fixIfBehindProxy = require('../lib/utilities').fixIfBehindProxy;
 var debug = require('debug')('antisocial-friends');
+const errorLog = require('debug')('errors');
 var VError = require('verror').VError;
 var WError = require('verror').WError;
 var async = require('async');
@@ -53,16 +54,11 @@ module.exports = function mountFriendRequestAccept(antisocialApp) {
 		async.waterfall([
 			function findFriend(cb) {
 				debug('/friend-request-accept findFriend');
-				db.getInstances('friends', [{
-					'property': 'userId',
-					'value': currentUser.id
-				}, {
-					'property': 'remoteEndPoint',
-					'value': req.body.endpoint
-				}, {
-					'property': 'status',
-					'value': 'pending'
-				}], function (err, friendInstances) {
+				db.getInstances('friends', {
+					'userId': currentUser.id,
+					'remoteEndPoint': req.body.endpoint,
+					'status': 'pending'
+				}, function (err, friendInstances) {
 					if (err) {
 						return cb(new VError(err, 'error reading friends'));
 					}
@@ -85,8 +81,11 @@ module.exports = function mountFriendRequestAccept(antisocialApp) {
 				var options = {
 					'url': fixIfBehindProxy(antisocialApp, friend.remoteEndPoint + '/friend-webhook'),
 					'form': payload,
-					'json': true
+					'json': true,
+					'timeout': 20000
 				};
+
+				debug('options %s, %j, payload %j', friend, payload, options);
 
 				request.post(options, function (err, response, body) {
 					if (err) {
@@ -120,6 +119,7 @@ module.exports = function mountFriendRequestAccept(antisocialApp) {
 			}
 		], function (err, friend) {
 			if (err) {
+				errorLog('/friend-request-accept error %s', err.message);
 				var e = new WError(err, '/friend-request-accept failed');
 				return res.send({
 					'status': 'error',

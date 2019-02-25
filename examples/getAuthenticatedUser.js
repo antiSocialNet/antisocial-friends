@@ -7,6 +7,7 @@
 */
 
 var debug = require('debug')('antisocial-user');
+const errorLog = require('debug')('errors');
 
 module.exports = function (db) {
 
@@ -33,7 +34,12 @@ module.exports = function (db) {
 
 		db.updateInstance('tokens', token.id, {
 			'lastaccess': new Date()
-		}, cb);
+		}, function (err) {
+			if (err) {
+				errorLog('touchToken error', err.message);
+			}
+			cb();
+		});
 	}
 
 	// get token from headers or cookies and resolve the logged in user
@@ -60,10 +66,9 @@ module.exports = function (db) {
 
 		debug('getAuthenticatedUser found token in header or cookies', token);
 
-		db.getInstances('tokens', [{
-			'property': 'token',
-			'value': token
-		}], function (err, tokenInstances) {
+		db.getInstances('tokens', {
+			'token': token
+		}, function (err, tokenInstances) {
 			if (err) {
 				debug('getAuthenticatedUser error finding token', err.message);
 				return next();
@@ -81,16 +86,16 @@ module.exports = function (db) {
 				});
 			}
 			else {
-				db.getInstances('users', [{
-					'property': 'id',
-					'value': tokenInstances[0].userId
-				}], function (err, userInstances) {
+				db.getInstances('users', {
+					'id': tokenInstances[0].userId
+				}, function (err, userInstances) {
 					if (err) {
 						return next();
 					}
 					if (!userInstances || userInstances.length !== 1) {
 						return next();
 					}
+
 					req.antisocialToken = tokenInstances[0];
 					req.antisocialUser = userInstances[0];
 

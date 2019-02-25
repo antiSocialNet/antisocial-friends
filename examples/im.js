@@ -134,13 +134,10 @@ module.exports.init = function (antisocialApp) {
 			return res.sendStatus(400);
 		}
 
-		antisocialApp.db.getInstances('friends', [{
-			'property': 'remoteEndPoint',
-			'value': req.body.endpoint
-		}, {
-			'property': 'userId',
-			'value': currentUser.id
-		}], function (err, friendInstances) {
+		antisocialApp.db.getInstances('friends', {
+			'remoteEndPoint': req.body.endpoint,
+			'userId': currentUser.id
+		}, function (err, friendInstances) {
 			if (err) {
 				return res.sendStatus(500);
 			}
@@ -189,10 +186,9 @@ module.exports.init = function (antisocialApp) {
 				function findIms(doneFindIms) {
 					debug('DELETE /im/xxx findIms');
 
-					antisocialApp.db.getInstances('ims', [{
-						'property': 'sessionId',
-						'value': req.imSession.id
-					}], function (err, ims) {
+					antisocialApp.db.getInstances('ims', {
+						'sessionId': req.imSession.id
+					}, function (err, ims) {
 						if (err) {
 							return doneFindIms(new VError(err, 'error finding ims'));
 						}
@@ -315,10 +311,9 @@ module.exports.init = function (antisocialApp) {
 		else {
 			async.waterfall([
 				function getUser(cb) { // get user from imsession
-					antisocialApp.db.getInstances('users', [{
-						'property': 'id',
-						'value': data.userId
-					}], function (err, userInstances) {
+					antisocialApp.db.getInstances('users', {
+						'id': data.userId
+					}, function (err, userInstances) {
 						if (err) {};
 						if (!userInstances || !userInstances.length === 1) {}
 						cb(null, userInstances[0]);
@@ -326,13 +321,10 @@ module.exports.init = function (antisocialApp) {
 				},
 				function getMembers(user, cb) {
 					async.map(data.members, function (member, doneMap) {
-						antisocialApp.db.getInstances('friends', [{
-							'property': 'remoteEndPoint',
-							'value': member
-						}, {
-							'property': 'userId',
-							'value': user.id
-						}], function (err, friendInstances) {
+						antisocialApp.db.getInstances('friends', {
+							'remoteEndPoint': member,
+							'userId': user.id
+						}, function (err, friendInstances) {
 							doneMap(err, friendInstances[0]);
 						});
 					}, function (err, friends) {
@@ -369,10 +361,9 @@ module.exports.init = function (antisocialApp) {
 	antisocialApp.db.on('delete-imsessions', function (data) {
 		debug('delete-imsessions event %s', data.id);
 
-		antisocialApp.db.getInstances('users', [{
-			'property': 'id',
-			'value': data.userId
-		}], function (err, userInstances) {
+		antisocialApp.db.getInstances('users', {
+			'id': data.userId
+		}, function (err, userInstances) {
 			if (err) {
 				debug('delete-imsessions event error reading user %j', err);
 				return;
@@ -429,10 +420,9 @@ module.exports.init = function (antisocialApp) {
 		debug('create-ims event %j', data);
 		async.waterfall([
 				function getUser(cb) { // get user
-					antisocialApp.db.getInstances('users', [{
-						'property': 'id',
-						'value': data.userId
-					}], function (err, userInstances) {
+					antisocialApp.db.getInstances('users', {
+						'id': data.userId
+					}, function (err, userInstances) {
 						if (err) {
 							return cb(new VError(err, 'error finding user'));
 						}
@@ -443,13 +433,10 @@ module.exports.init = function (antisocialApp) {
 					});
 				},
 				function getSessionFromId(user, cb) {
-					var query = [{
-						'property': 'id',
-						'value': data.sessionId
-					}, {
-						'property': 'userId',
-						'value': user.id
-					}];
+					var query = {
+						'id': data.sessionId,
+						'userId': user.id
+					};
 
 					antisocialApp.db.getInstances('imsessions', query, function (err, sessionInstances) {
 						if (err) {
@@ -463,13 +450,10 @@ module.exports.init = function (antisocialApp) {
 				},
 				function getMembers(user, session, cb) {
 					async.map(session.members, function (member, doneMap) {
-						antisocialApp.db.getInstances('friends', [{
-							'property': 'remoteEndPoint',
-							'value': member
-						}, {
-							'property': 'userId',
-							'value': user.id
-						}], function (err, friendInstances) {
+						antisocialApp.db.getInstances('friends', {
+							'remoteEndPoint': member,
+							'userId': user.id
+						}, function (err, friendInstances) {
 							if (err) {
 								return doneMap(new VError(err, 'error finding friend'));
 							}
@@ -592,13 +576,10 @@ module.exports.init = function (antisocialApp) {
 				},
 				function resolveFriends(session, cb) {
 					// get my friend instance for the originator
-					antisocialApp.db.getInstances('friends', [{
-						'property': 'userId',
-						'value': user.id
-					}, {
-						'property': 'remoteEndPoint',
-						'value': data.originatorEndPoint
-					}], function (err, friends) {
+					antisocialApp.db.getInstances('friends', {
+						'userId': user.id,
+						'remoteEndPoint': data.originatorEndPoint
+					}, function (err, friends) {
 						return cb(null, session, friends[0]);
 					});
 				},
@@ -635,10 +616,9 @@ module.exports.init = function (antisocialApp) {
 
 						async.waterfall([
 							function findIms(doneFindIms) {
-								antisocialApp.db.getInstances('ims', [{
-									'property': 'sessionId',
-									'value': session.id
-								}], function (err, ims) {
+								antisocialApp.db.getInstances('ims', {
+									'sessionId': session.id
+								}, function (err, ims) {
 									if (err) {
 										return doneFindIms(new VError(err, 'error finding ims'));
 									}
@@ -731,13 +711,10 @@ module.exports.init = function (antisocialApp) {
 	});
 
 	function getSession(user, sessionUUID, cb) {
-		var query = [{
-			'property': 'uuid',
-			'value': sessionUUID
-		}, {
-			'property': 'userId',
-			'value': user.id
-		}];
+		var query = {
+			'uuid': sessionUUID,
+			'userId': user.id
+		};
 
 		antisocialApp.db.getInstances('imsessions', query, function (err, sessionInstances) {
 			if (err) {

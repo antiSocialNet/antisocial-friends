@@ -6,6 +6,9 @@ var debug = require('debug')('antisocial-friends');
 var VError = require('verror').VError;
 var WError = require('verror').WError;
 var async = require('async');
+const errorLog = require('debug')('errors');
+
+
 
 module.exports = function mountFriendWebhook(antisocialApp) {
 
@@ -22,13 +25,14 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 		var matches = req.path.match(webhookRegex);
 		var username = matches[1];
 
+		debug('/friend-webhook %s %j', username, req.body);
+
 		async.waterfall([
 			function getUser(cb) {
 				debug('/friend-webhook getUser');
-				db.getInstances('users', [{
-					'property': 'username',
-					'value': username
-				}], function (err, userInstances) {
+				db.getInstances('users', {
+					'username': username
+				}, function (err, userInstances) {
 					if (err) {
 						return cb(new VError(err, 'user not found'));
 					}
@@ -48,13 +52,10 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 			},
 			function getFriendByAccessToken(user, cb) {
 				debug('/friend-webhook getFriendByAccessToken');
-				db.getInstances('friends', [{
-					'property': 'userId',
-					'value': user.id
-				}, {
-					'property': 'localAccessToken',
-					'value': req.body.accessToken
-				}], function (err, friendInstances) {
+				db.getInstances('friends', {
+					'userId': user.id,
+					'localAccessToken': req.body.accessToken
+				}, function (err, friendInstances) {
 					if (err) {
 						return cb(new VError(err, 'error reading friends'));
 					}
@@ -127,6 +128,7 @@ module.exports = function mountFriendWebhook(antisocialApp) {
 			}
 		], function (err) {
 			if (err) {
+				errorLog('/friend-webook error %s', err.message);
 				var e = new WError(err, '/friend-webook failed');
 				return res.send({
 					'status': 'error',

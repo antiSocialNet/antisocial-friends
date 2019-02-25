@@ -2,10 +2,11 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
-var async = require('async');
-var debug = require('debug')('antisocial-friends');
-var VError = require('verror').VError;
-var WError = require('verror').WError;
+const async = require('async');
+const debug = require('debug')('antisocial-friends');
+const errorLog = require('debug')('errors');
+const VError = require('verror').VError;
+const WError = require('verror').WError;
 
 module.exports = function mountFriendExchangeToken(antisocialApp) {
 
@@ -27,11 +28,10 @@ module.exports = function mountFriendExchangeToken(antisocialApp) {
 
 		async.waterfall([
 			function getUser(cb) {
-				debug('/exchange-token getUser');
-				db.getInstances('users', [{
-					'property': 'username',
-					'value': username
-				}], function (err, userInstances) {
+				debug('/exchange-token getUser %s', username);
+				db.getInstances('users', {
+					'username': username
+				}, function (err, userInstances) {
 					if (err) {
 						return cb(new VError(err, 'user not found'));
 					}
@@ -44,43 +44,44 @@ module.exports = function mountFriendExchangeToken(antisocialApp) {
 				});
 			},
 			function findFriend(user, cb) {
-				debug('/exchange-token findFriend');
 
-				db.getInstances('friends', [{
-					'property': 'localRequestToken',
-					'value': requestToken
-				}], function (err, friendInstances) {
+				var query = {
+					'userId': user.id.toString(),
+					'localRequestToken': requestToken,
+					'remoteEndPoint': endpoint
+				};
+
+				debug('/exchange-token findFriend %j', query);
+
+				db.getInstances('friends', query, function (err, friendInstances) {
 					if (err) {
 						return cb(new VError(err, 'error reading friend'));
 					}
 
-					for (var i = 0; i < friendInstances.length; i++) {
-						var friend = friendInstances[i];
-						if (friend.remoteEndPoint === endpoint && user.id.toString() === friend.userId.toString()) {
-							return cb(null, user, friend);
-						}
+					if (!friendInstances || !friendInstances.length) {
+						return cb(new VError('friend not found'));
 					}
 
-					cb(new VError('friend not found'));
+					cb(null, user, friendInstances[0]);
 				});
 			}
 		], function (err, user, friend) {
 			if (err) {
+				errorLog('/exchange-token error %s', err.message);
 				var e = new WError(err, 'exchange token failed');
-				debug('/exchange-token failed %s', e.cause().message);
-				return res.status(400).send(e.cause().message);
+				return res.status(400).json(e.cause().message);
 			}
 
 			var payload = {
 				'status': friend.status,
 				'accessToken': friend.localAccessToken,
-				'publicKey': friend.keys.public,
+				'publicKey': friend.keypair.public,
 				'name': user.name,
 				'username': user.username,
 				'community': user.community
 			};
 
-			res.send(payload);
+			res.json(payload);
 		});
 	});
 
