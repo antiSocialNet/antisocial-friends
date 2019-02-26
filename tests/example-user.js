@@ -19,11 +19,8 @@ describe('friends', function () {
 	var client2 = request.agent();
 	var client3 = request.agent();
 
-	var endpoint1 = 'http://127.0.0.1:3000/antisocial/';
-	var endpoint2 = 'http://127.0.0.1:3000/antisocial/';
-	var endpoint3 = 'http://127.0.0.1:3000/antisocial/';
-
 	var token1;
+	var token2;
 
 	var app = require('../app');
 
@@ -72,11 +69,48 @@ describe('friends', function () {
 				expect(res.body.status).to.equal('ok');
 				token1 = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(token1).to.be.a('string');
-				endpoint1 += res.body.result.name;
 				done();
 			});
+	});
+
+	it('should be able to create account 2', function (done) {
+		client2.post('http://127.0.0.1:3000/api/users/register')
+			.type('form')
+			.send({
+				'name': 'user two',
+				'username': 'user-two',
+				'email': 'mrhodes@myantisocial.net',
+				'password': 'Testing123'
+			})
+			.end(function (err, res) {
+				if (err) {
+					console.log('errors: ', res.body.errors);
+				}
+				expect(err).to.be(null);
+				expect(res.status).to.equal(200);
+				expect(res.body.status).to.equal('ok');
+				token2 = getCookie(res.headers['set-cookie'], 'access-token');
+				expect(token2).to.be.a('string');
+				done();
+			});
+	});
 
 
+	it('should be able to send password reset', function (done) {
+		client3.post('http://127.0.0.1:3000/api/users/password-reset')
+			.type('form')
+			.send({
+				'email': 'mrhodes@myantisocial.net'
+			})
+			.end(function (err, res) {
+				if (err) {
+					console.log('errors: ', res.body.errors);
+				}
+				expect(err).to.be(null);
+				expect(res.status).to.equal(200);
+				expect(res.body.status).to.equal('ok');
+				done();
+			});
 	});
 
 	it('should be able to logout', function (done) {

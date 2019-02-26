@@ -8,10 +8,12 @@ const uid = require('uid2');
 const debug = require('debug')('antisocial-user');
 const VError = require('verror').VError;
 const errorLog = require('debug')('errors');
+const nodemailer = require('nodemailer');
 
 const DEFAULT_TTL = 1209600; // 2 weeks in seconds
 const DEFAULT_SALT_ROUNDS = 10;
 const DEFAULT_TOKEN_LEN = 64;
+const PASSWORD_RESET_TTL = 3600; // 1 hr
 
 module.exports = function (app, db, authUserMiddleware) {
 
@@ -42,12 +44,12 @@ module.exports = function (app, db, authUserMiddleware) {
 		});
 	}
 
-	function createToken(user, done) {
+	function createToken(user, options, done) {
 		var guid = uid(DEFAULT_TOKEN_LEN);
 		db.newInstance('tokens', {
 			'userId': user.id,
 			'token': guid,
-			'ttl': DEFAULT_TTL,
+			'ttl': options.ttl ? options.ttl : DEFAULT_TTL,
 			'lastaccess': new Date(),
 			'created': new Date()
 		}, function (err, user) {
@@ -110,7 +112,7 @@ module.exports = function (app, db, authUserMiddleware) {
 					});
 				}
 
-				createToken(user, function (err, token) {
+				createToken(user, {}, function (err, token) {
 					res.cookie('access-token', token.token, {
 							'path': '/',
 							'maxAge': token.ttl,
@@ -187,7 +189,7 @@ module.exports = function (app, db, authUserMiddleware) {
 							});
 					}
 
-					createToken(user, function (err, token) {
+					createToken(user, {}, function (err, token) {
 						res.cookie('access-token', token.token, {
 								'path': '/',
 								'maxAge': token.ttl,
@@ -232,8 +234,83 @@ module.exports = function (app, db, authUserMiddleware) {
 	});
 
 	// send pasword reset link to email
-	router.post('/password-reset', function (req, res) {
+	// expects email address
+	router.post('/password-reset', check('email').isEmail(), function (req, res) {
+		db.getInstances('users', {
+			'email': req.body.email
+		}, function (err, token) {
+			var errors = validationResult(req);
+			if (!errors.isEmpty()) {
+				return res.status(422)
+					.json({
+						status: 'error',
+						errors: errors.array()
+					});
+			}
 
+			db.getInstances('users', {
+				'email': req.body.email
+			}, function (err, userInstances) {
+				if (err) {
+					return res.status(500).json({
+						status: 'error',
+						'errors': err.message
+					});
+				}
+
+				if (!userInstances || userInstances.length !== 1) {
+					return res.status(401)
+						.json({
+							'status': 'user not found'
+						});
+				}
+
+				var user = userInstances[0];
+
+				createToken(user, {
+					ttl: PASSWORD_RESET_TTL
+				}, function (err, token) {
+
+					console.log(token);
+
+					var config = {
+						host: process.env.OUTBOUND_MAIL_SMTP_HOST,
+						port: process.env.OUTBOUND_MAIL_SMTP_PORT || 25,
+						secure: process.env.OUTBOUND_MAIL_SMTP_SSL === 'true' ? true : false
+					};
+
+					if (process.env.OUTBOUND_MAIL_SMTP_USER && process.env.OUTBOUND_MAIL_SMTP_PASSWORD) {
+						config.auth = {
+							user: process.env.OUTBOUND_MAIL_SMTP_USER,
+							pass: process.env.OUTBOUND_MAIL_SMTP_PASSWORD
+						};
+					}
+
+					var transporter = nodemailer.createTransport(config);
+
+					var options = {
+						'to': user.email,
+						'from': 'webmaster@datalounge.com',
+						'subject': 'Password reset',
+						'html': '<p><a href="http://localhost:3000/change-password/' + token.token + '">Use this link</a> to reset your password.'
+					};
+
+					transporter.sendMail(options, function (err, info) {
+						if (err) {
+							var e = new VError(err, 'could not send email');
+							return res.status(500).json({
+								status: 'error',
+								errors: e.message
+							});
+						}
+						res.json({
+							'status': 'ok',
+							'info': info
+						});
+					});
+				});
+			});
+		});
 	});
 
 	// reset password if valid reset token
