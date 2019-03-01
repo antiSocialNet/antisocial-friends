@@ -39,6 +39,9 @@ else {
 
 app.db = db;
 
+db.on('create-users', function (data) {
+  console.log('db create event users %s', data.id);
+});
 
 db.on('create-friends', function (data) {
   console.log('db create event friends %s', data.id);
@@ -52,15 +55,15 @@ db.on('delete-friends', function (data) {
   console.log('db delete event friends %s', data.id);
 });
 
-
-var getAuthenticatedUser = require('./examples/getAuthenticatedUser')(db);
-
-var userAPI = require('./examples/api-reg-users')(express, db, getAuthenticatedUser);
+const {
+  getUserForRequestMiddleware, mount
+} = require('./lib/api-reg-users');
+var userAPI = mount(express, db);
 app.use('/api/users', userAPI);
 
 var router = express.Router();
 
-router.post('/post', getAuthenticatedUser, function (req, res) {
+router.post('/post', getUserForRequestMiddleware(db), function (req, res) {
   var post = req.body;
   post.userId = req.antisocialUser.id;
   app.db.newInstance('posts', post, function (err, postInstance) {
@@ -83,7 +86,7 @@ app.start = function (port) {
     'port': 3000
   };
 
-  var antisocialApp = antisocial(app, config, db, getAuthenticatedUser);
+  var antisocialApp = antisocial(app, config, db, getUserForRequestMiddleware(db));
 
   imApp.init(antisocialApp);
 

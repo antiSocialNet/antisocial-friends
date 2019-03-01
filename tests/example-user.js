@@ -57,7 +57,7 @@ describe('friends', function () {
 			.send({
 				'name': 'user one',
 				'username': 'user-one',
-				'email': 'user1@testing.com',
+				'email': 'mrhodes+1@myantisocial.net',
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
@@ -79,7 +79,7 @@ describe('friends', function () {
 			.send({
 				'name': 'user two',
 				'username': 'user-two',
-				'email': 'mrhodes@myantisocial.net',
+				'email': 'mrhodes+2@myantisocial.net',
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {
@@ -100,7 +100,7 @@ describe('friends', function () {
 		client3.post('http://127.0.0.1:3000/api/users/password-reset')
 			.type('form')
 			.send({
-				'email': 'mrhodes@myantisocial.net'
+				'email': 'mrhodes+1@myantisocial.net'
 			})
 			.end(function (err, res) {
 				if (err) {
@@ -130,7 +130,7 @@ describe('friends', function () {
 		client1.post('http://127.0.0.1:3000/api/users/login')
 			.type('form')
 			.send({
-				'email': 'user1@testing.com',
+				'email': 'mrhodes+1@myantisocial.net',
 				'password': 'Testing123'
 			})
 			.end(function (err, res) {

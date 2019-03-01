@@ -194,10 +194,6 @@ class dbHandler extends EventEmitter {
 		store an item after assigning an unique id
 	*/
 	newInstance(collectionName, data, cb) {
-		if (!cb) {
-			console.trace('newInstance no callback!');
-		}
-
 		data.id = uuid();
 
 		var vals = this.encodeTypes(collectionName, data);
@@ -239,9 +235,6 @@ class dbHandler extends EventEmitter {
 		pairs are anded
 	*/
 	getInstances(collectionName, pairs, cb) {
-		if (!cb) {
-			console.trace('getInstances no callback!');
-		}
 		var clauses = [];
 		for (var col in pairs) {
 			clauses.push(col + ' = ?');
@@ -267,9 +260,6 @@ class dbHandler extends EventEmitter {
 		update item properties by id
 	*/
 	updateInstance(collectionName, id, patch, cb) {
-		if (!cb) {
-			console.trace('updateInstance no callback!');
-		}
 		var clauses = [];
 
 		var vals = this.encodeTypes(collectionName, patch);
@@ -306,9 +296,6 @@ class dbHandler extends EventEmitter {
 	}
 
 	deleteInstance(collectionName, id, cb) {
-		if (!cb) {
-			console.trace('deleteInstance no callback!');
-		}
 		var sql = 'SELECT * from ' + collectionName + ' WHERE id = ?';
 
 		var self = this;
