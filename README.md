@@ -281,95 +281,12 @@ which is set to the id of the appropriate user when created.
 The schema definition is implementation specific and up to the implementor.
 The following is an example db adaptor for a Loopback.io application. dbHandlers
 must support all the methods in this example.
-```
-function dbHandler() {
-  var self = this;
 
-  self.models = {
-    'users': 'MyUser',
-    'friends': 'Friend',
-    'invitations': 'Invite',
-    'blocks': 'Block'
-  };
+In memory example
+[examples/db.js](https://github.com/antiSocialNet/antisocial-friends/blob/master/examples/db.js)
 
-  // store an item
-  this.newInstance = function (collectionName, data, cb) {
-    server.models[self.models[collectionName]].create(data, function (err, instance) {
-      if (cb) {
-        cb(err, instance);
-      }
-      else {
-        return instance;
-      }
-    });
-  };
-
-  // get an item by matching some properties.
-  // pairs are a list of property/value pairs that are anded
-  // when querying the database example:
-  //
-  //   { 'userId': 1 },
-  //   { 'localAccessToken': 'jhgasdfjhgsdfjhg' }
-  //
-  this.getInstances = function (collectionName, pairs, cb) {
-    var query = {
-      'where': {
-        'and': []
-      }
-    };
-
-    for (var prop in pairs) {
-      var value = pairs[prop];
-      var pair = {};
-      pair[prop] = value;
-      query.where.and.push(pair);
-    }
-
-    server.models[self.models[collectionName]].find(query, function (err, found) {
-      if (cb) {
-        cb(err, found);
-      }
-      else {
-        return found;
-      }
-    });
-  };
-
-  // update item properties by id
-  this.updateInstance = function (collectionName, id, patch, cb) {
-    server.models[self.models[collectionName]].findById(id, function (err, instance) {
-      if (err) {
-        return cb(new Error('error reading ' + collectionName));
-      }
-      if (!instance) {
-        return cb(new Error('error ' + collectionName + ' id ' + id + ' not found'));
-      }
-
-      instance.updateAttributes(patch, function (err, updated) {
-        if (err) {
-          return cb(new Error('error updating ' + collectionName));
-        }
-        if (cb) {
-          cb(null, updated);
-        }
-        else {
-          return updated;
-        }
-      });
-    });
-  };
-
-  this.deleteInstance = function (collectionName, id, cb) {
-    server.models[self.models[collectionName]].destroyById(id, function (err) {
-      if (cb) {
-        cb(err);
-      }
-    });
-  };
-}
-
-db = new dbHandler();
-```
+MySQL example
+[examples/db-mysql.js](https://github.com/antiSocialNet/antisocial-friends/blob/master/examples/db-mysql.js)
 
 ### User properties
 The user is application specific but we expect the following properties
