@@ -52,7 +52,7 @@ module.exports = function notificationsFeedMount(antisocialApp, expressListener)
 
 			var cookies = cookie.parse(socket.handshake.headers.cookie);
 			var signedCookies = cookieParser.signedCookies(cookies, config.secureCookiePassword);
-			if (!signedCookies.access_token) {
+			if (!signedCookies.access_token && !signedCookies['access-token']) {
 				return callback(null, false);
 			}
 

@@ -49,16 +49,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 1', function (done) {
-		client1.post('http://127.0.0.1:3000/register')
+		client1.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user one',
-				'username': 'user-one'
+				'username': 'user-one',
+				'email': 'test+1@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint1 += res.body.result.username;
 				done();
@@ -66,16 +68,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 2', function (done) {
-		client2.post('http://127.0.0.1:3000/register')
+		client2.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user two',
-				'username': 'user-two'
+				'username': 'user-two',
+				'email': 'test+2@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint2 += res.body.result.username;
 				done();
@@ -83,16 +87,18 @@ describe('friends', function () {
 	});
 
 	it('should be able to create account 3', function (done) {
-		client3.post('http://127.0.0.1:3000/register')
+		client3.post('http://127.0.0.1:3000/api/users/register')
 			.type('form')
 			.send({
 				'name': 'user three',
-				'username': 'user-three'
+				'username': 'user-three',
+				'email': 'test+3@myantisocial.net',
+				'password': 'Testing123'
 			})
 			.end(function (err, res) {
 				expect(err).to.be(null);
 				expect(res.status).to.equal(200);
-				var accessToken = getCookie(res.headers['set-cookie'], 'access_token');
+				var accessToken = getCookie(res.headers['set-cookie'], 'access-token');
 				expect(accessToken).to.be.a('string');
 				endpoint3 += res.body.result.username;
 				done();
